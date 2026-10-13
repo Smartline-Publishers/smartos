@@ -12,6 +12,13 @@ const STATUS_STYLES: Record<string, string> = {
   PRINTING: "bg-violet-100 text-violet-800",
   PUBLISHED: "bg-green-100 text-green-800",
   ARCHIVED: "bg-slate-200 text-slate-600",
+  TODO: "bg-slate-100 text-slate-700",
+  IN_PROGRESS: "bg-blue-100 text-blue-800",
+  REVIEW: "bg-amber-100 text-amber-800",
+  DONE: "bg-green-100 text-green-800",
+  LOW: "bg-slate-100 text-slate-600",
+  MEDIUM: "bg-amber-100 text-amber-800",
+  HIGH: "bg-rose-100 text-rose-800",
   active: "bg-green-100 text-green-800",
   inactive: "bg-slate-100 text-slate-600",
 };

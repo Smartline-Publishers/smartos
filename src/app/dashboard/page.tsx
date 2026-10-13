@@ -120,7 +120,7 @@ export default function DashboardPage() {
                     .reduce((n, p) => n + p.count, 0),
                 )}
                 sub="Submitted or in review"
-                href="/books"
+                href="/manuscripts"
                 linkLabel="Review queue"
               />
               <StatCard

@@ -68,7 +68,7 @@ const SAMPLE: DashboardSummary = {
       title: "Assign editor — Ga Proverbs manuscript",
       detail: "Submitted 6 days ago, still unassigned.",
       severity: "low",
-      href: "/books",
+      href: "/manuscripts",
     },
   ],
   activity: [
