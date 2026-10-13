@@ -19,6 +19,12 @@ const STATUS_STYLES: Record<string, string> = {
   LOW: "bg-slate-100 text-slate-600",
   MEDIUM: "bg-amber-100 text-amber-800",
   HIGH: "bg-rose-100 text-rose-800",
+  PLANNED: "bg-slate-100 text-slate-700",
+  COMPLETED: "bg-green-100 text-green-800",
+  CANCELLED: "bg-slate-200 text-slate-600",
+  IN: "bg-green-100 text-green-800",
+  OUT: "bg-rose-100 text-rose-800",
+  ADJUSTMENT: "bg-amber-100 text-amber-800",
   active: "bg-green-100 text-green-800",
   inactive: "bg-slate-100 text-slate-600",
 };

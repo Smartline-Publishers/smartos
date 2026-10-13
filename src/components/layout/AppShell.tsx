@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/hooks/use-auth";
 import { cn } from "@/lib/cn";
-import { Book, BookOpen, ListChecks, ShieldCheck, SquaresFour, Users, type Icon as PhosphorIcon } from "@phosphor-icons/react";
+import { Book, BookOpen, ListChecks, Printer, ShieldCheck, SquaresFour, Users, Warehouse, type Icon as PhosphorIcon } from "@phosphor-icons/react";
 import type { Role } from "@/types/auth";
 
 interface NavItem {
@@ -29,7 +29,11 @@ const NAV: { section: string; items: NavItem[] }[] = [
   },
   {
     section: "Operations",
-    items: [{ href: "/tasks", label: "Tasks", icon: ListChecks }],
+    items: [
+      { href: "/tasks", label: "Tasks", icon: ListChecks },
+      { href: "/production", label: "Production", icon: Printer },
+      { href: "/inventory", label: "Inventory", icon: Warehouse },
+    ],
   },
   {
     section: "People",
