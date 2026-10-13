@@ -4,7 +4,7 @@ import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/Button";
-import { Icon } from "@/components/ui/Icon";
+import { MagnifyingGlass } from "@phosphor-icons/react";
 
 function shortOrg(orgId: string | undefined): string {
   if (!orgId) return "No organization";
@@ -32,7 +32,7 @@ export function TopBar() {
         </label>
         <div className="relative">
           <span aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
-            <Icon name="search" className="h-4 w-4" />
+            <MagnifyingGlass size={16} aria-hidden="true" />
           </span>
           <input
             id="catalog-search"

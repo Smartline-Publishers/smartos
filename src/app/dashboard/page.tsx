@@ -7,7 +7,7 @@ import { AppShell } from "@/components/layout/AppShell";
 import { TopBar } from "@/components/layout/TopBar";
 import { Card } from "@/components/ui/Card";
 import { Spinner } from "@/components/ui/Spinner";
-import { Icon } from "@/components/ui/Icon";
+import { Warning } from "@phosphor-icons/react";
 import { Sparkline } from "@/components/charts/Sparkline";
 import { Donut, type DonutSegment } from "@/components/charts/Donut";
 import { BriefingHero } from "@/components/dashboard/BriefingHero";
@@ -75,7 +75,7 @@ export default function DashboardPage() {
                 role="status"
                 className="flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900"
               >
-                <Icon name="alert" className="mt-0.5 h-4 w-4 shrink-0" />
+                <Warning size={16} aria-hidden="true" className="mt-0.5 shrink-0" />
                 <span>
                   Showing sample figures — the API is unreachable. Check{" "}
                   <code className="font-mono text-[13px]">NEXT_PUBLIC_API_URL</code> and the

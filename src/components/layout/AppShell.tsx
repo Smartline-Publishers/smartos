@@ -4,26 +4,26 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/hooks/use-auth";
 import { cn } from "@/lib/cn";
-import { Icon, type IconName } from "@/components/ui/Icon";
+import { Book, ShieldCheck, SquaresFour, Users, type Icon as PhosphorIcon } from "@phosphor-icons/react";
 import type { Role } from "@/types/auth";
 
 interface NavItem {
   href: string;
   label: string;
-  icon: IconName;
+  icon: PhosphorIcon;
   roles?: Role[];
 }
 
 const NAV: { section: string; items: NavItem[] }[] = [
   {
     section: "Overview",
-    items: [{ href: "/dashboard", label: "Dashboard", icon: "grid" }],
+    items: [{ href: "/dashboard", label: "Dashboard", icon: SquaresFour }],
   },
   {
     section: "Catalog",
     items: [
-      { href: "/books", label: "Books", icon: "book" },
-      { href: "/contributors", label: "Contributors", icon: "users" },
+      { href: "/books", label: "Books", icon: Book },
+      { href: "/contributors", label: "Contributors", icon: Users },
     ],
   },
   {
@@ -32,7 +32,7 @@ const NAV: { section: string; items: NavItem[] }[] = [
       {
         href: "/users",
         label: "Users",
-        icon: "shield",
+        icon: ShieldCheck,
         roles: ["PLATFORM_ADMIN", "ORG_ADMIN"],
       },
     ],
@@ -59,6 +59,7 @@ function NavList({ items, orientation }: { items: NavItem[]; orientation: "verti
         .filter((item) => isVisible(item, user?.roles))
         .map((item) => {
           const active = pathname === item.href;
+          const ItemIcon = item.icon;
           return (
             <li key={item.href} className={cn(orientation === "horizontal" && "shrink-0")}>
               <Link
@@ -71,7 +72,7 @@ function NavList({ items, orientation }: { items: NavItem[]; orientation: "verti
                     : "text-slate-700 hover:bg-slate-900/5",
                 )}
               >
-                <Icon name={item.icon} className="h-[18px] w-[18px]" />
+                <ItemIcon size={18} aria-hidden="true" />
                 {item.label}
               </Link>
             </li>
