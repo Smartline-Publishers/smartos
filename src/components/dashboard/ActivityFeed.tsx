@@ -1,4 +1,5 @@
 import { EmptyState } from "@/components/ui/EmptyState";
+import { timeAgo } from "@/lib/format";
 import type { ActivityItem } from "@/types/dashboard";
 
 /** Recent activity timeline. */
@@ -22,7 +23,9 @@ export function ActivityFeed({ items }: { items: ActivityItem[] }) {
               <p className="min-w-0 flex-1 text-sm leading-snug text-slate-700">
                 <span className="font-semibold text-slate-900">{item.actor}</span> {item.action}
               </p>
-              <span className="shrink-0 text-xs tabular-nums text-slate-500">{item.timeLabel}</span>
+              <span className="shrink-0 text-xs tabular-nums text-slate-500">
+                {item.timeLabel ?? timeAgo(item.createdAt)}
+              </span>
             </li>
           ))}
         </ul>

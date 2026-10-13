@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/hooks/use-auth";
 import { cn } from "@/lib/cn";
-import { Book, BookOpen, Coins, ListChecks, Printer, Receipt, ShieldCheck, ShoppingCart, SquaresFour, User, Users, Warehouse, type Icon as PhosphorIcon } from "@phosphor-icons/react";
+import { Book, BookOpen, ChartBar, Coins, FileText, ListChecks, Printer, Receipt, ShieldCheck, ShoppingCart, SquaresFour, User, Users, Warehouse, type Icon as PhosphorIcon } from "@phosphor-icons/react";
 import type { Role } from "@/types/auth";
 
 interface NavItem {
@@ -17,7 +17,10 @@ interface NavItem {
 const NAV: { section: string; items: NavItem[] }[] = [
   {
     section: "Overview",
-    items: [{ href: "/dashboard", label: "Dashboard", icon: SquaresFour }],
+    items: [
+      { href: "/dashboard", label: "Dashboard", icon: SquaresFour },
+      { href: "/reports", label: "Reports", icon: ChartBar },
+    ],
   },
   {
     section: "Catalog",
@@ -56,6 +59,12 @@ const NAV: { section: string; items: NavItem[] }[] = [
         href: "/users",
         label: "Users",
         icon: ShieldCheck,
+        roles: ["PLATFORM_ADMIN", "ORG_ADMIN"],
+      },
+      {
+        href: "/audit",
+        label: "Audit log",
+        icon: FileText,
         roles: ["PLATFORM_ADMIN", "ORG_ADMIN"],
       },
     ],

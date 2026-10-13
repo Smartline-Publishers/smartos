@@ -20,10 +20,13 @@ export interface ActivityItem {
   id: string;
   actor: string;
   action: string;
-  timeLabel: string;
+  /** Pre-formatted label (sample data). Live items carry createdAt instead. */
+  timeLabel?: string;
+  /** ISO timestamp from the API; the UI renders a relative label from it. */
+  createdAt?: string;
 }
 
-/** Shape of GET /api/v1/dashboard/summary (Phase 5). Sections are optional for forward-compat. */
+/** Shape of GET /api/v1/dashboard/summary. Sections are optional for forward-compat. */
 export interface DashboardSummary {
   totalBooks: number;
   publishedBooks: number;
