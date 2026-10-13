@@ -40,7 +40,8 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="mx-auto max-w-md py-10">
+    <main id="main-content" className="mx-auto max-w-md py-10">
+      <h1 className="sr-only">Log in to SmartOS</h1>
       <Card title="Log in">
         <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-3" aria-label="Login form">
           <Input label="Email" type="email" autoComplete="email" required error={errors.email?.message} {...register("email")} />
@@ -55,6 +56,6 @@ export default function LoginPage() {
           </Button>
         </form>
       </Card>
-    </div>
+    </main>
   );
 }

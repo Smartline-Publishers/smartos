@@ -18,6 +18,16 @@ const config: Config = {
           900: "#193a8d",
           950: "#122352",
         },
+        // SmartOS editorial identity: warm paper surfaces, press-ink dark panels.
+        paper: "#f6f5f1",
+        cream: "#f5f1e3",
+        press: {
+          700: "#1d4a3e",
+          800: "#14382e",
+          900: "#0e2a22",
+          950: "#0a1f19",
+        },
+        gold: "#d9a93b",
       },
       fontFamily: {
         sans: ["ui-sans-serif", "system-ui", "sans-serif"],

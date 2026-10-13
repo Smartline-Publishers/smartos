@@ -4,6 +4,7 @@ import { ProtectedRoute } from "@/components/layout/ProtectedRoute";
 import { AppShell } from "@/components/layout/AppShell";
 import { TopBar } from "@/components/layout/TopBar";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { PageHeader } from "@/components/ui/PageHeader";
 import { useAuth } from "@/hooks/use-auth";
 
 export default function UsersPage() {
@@ -17,7 +18,10 @@ export default function UsersPage() {
       <TopBar />
       <AppShell>
         <div className="flex flex-col gap-4">
-          <h1 className="text-xl font-bold">Users</h1>
+          <PageHeader
+            title="Users"
+            description="Staff accounts and their access roles."
+          />
           {!isAdmin ? (
             <EmptyState
               title="Restricted"

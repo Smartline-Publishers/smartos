@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/Input";
 import { Pagination } from "@/components/ui/Pagination";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Spinner } from "@/components/ui/Spinner";
+import { PageHeader } from "@/components/ui/PageHeader";
 import { listContributors } from "@/features/contributors/api";
 import { usePagedQuery } from "@/hooks/use-paged-query";
 import type { Contributor } from "@/types/book";
@@ -45,7 +46,10 @@ export default function ContributorsPage() {
       <TopBar />
       <AppShell>
         <div className="flex flex-col gap-4">
-          <h1 className="text-xl font-bold">Contributors</h1>
+          <PageHeader
+            title="Contributors"
+            description="Authors, editors, illustrators and translators linked to your titles."
+          />
           <Input
             label="Search"
             placeholder="Name or email…"

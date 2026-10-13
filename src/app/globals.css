@@ -4,7 +4,7 @@
 
 :root {
   --brand: #1d63f1;
-  --bg: #f8fafc;
+  --bg: #f6f5f1;
   --fg: #0f172a;
   color-scheme: light;
 }
@@ -16,6 +16,10 @@ html {
 body {
   background: var(--bg);
   color: var(--fg);
+}
+
+::selection {
+  background: #d9eaff;
 }
 
 :focus-visible {

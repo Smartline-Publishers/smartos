@@ -4,77 +4,116 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/hooks/use-auth";
 import { cn } from "@/lib/cn";
+import { Icon, type IconName } from "@/components/ui/Icon";
 import type { Role } from "@/types/auth";
 
 interface NavItem {
   href: string;
   label: string;
+  icon: IconName;
   roles?: Role[];
-  section: string;
 }
 
-const NAV: NavItem[] = [
-  { href: "/dashboard", label: "Dashboard", section: "Overview" },
-  { href: "/books", label: "Books", section: "Catalog" },
-  { href: "/books", label: "Manuscripts", section: "Catalog" },
-  { href: "/books", label: "Production", section: "Operations" },
-  { href: "/books", label: "Inventory", section: "Operations" },
-  { href: "/books", label: "Sales", section: "Operations" },
-  { href: "/books", label: "Finance", section: "Operations" },
-  { href: "/books", label: "Royalties", section: "Operations" },
-  { href: "/contributors", label: "Contributors", section: "People" },
-  { href: "/users", label: "Users", section: "People", roles: ["PLATFORM_ADMIN", "ORG_ADMIN"] },
+const NAV: { section: string; items: NavItem[] }[] = [
+  {
+    section: "Overview",
+    items: [{ href: "/dashboard", label: "Dashboard", icon: "grid" }],
+  },
+  {
+    section: "Catalog",
+    items: [
+      { href: "/books", label: "Books", icon: "book" },
+      { href: "/contributors", label: "Contributors", icon: "users" },
+    ],
+  },
+  {
+    section: "People",
+    items: [
+      {
+        href: "/users",
+        label: "Users",
+        icon: "shield",
+        roles: ["PLATFORM_ADMIN", "ORG_ADMIN"],
+      },
+    ],
+  },
 ];
 
-const SECTIONS = ["Overview", "Catalog", "Operations", "People"];
+function isVisible(item: NavItem, roles: Role[] | undefined): boolean {
+  if (!item.roles) return true;
+  if (!roles) return false;
+  return roles.some((r) => item.roles?.includes(r));
+}
 
-export function AppShell({ children }: { children: React.ReactNode }) {
+function NavList({ items, orientation }: { items: NavItem[]; orientation: "vertical" | "horizontal" }) {
   const pathname = usePathname();
   const { user } = useAuth();
 
-  const visible = NAV.filter((item) => {
-    if (!item.roles) return true;
-    if (!user) return false;
-    return user.roles.some((r) => item.roles?.includes(r));
-  });
-
   return (
-    <div className="flex min-h-[calc(100vh-8rem)]">
-      <aside aria-label="Primary" className="hidden w-60 shrink-0 border-r border-slate-200 bg-slate-50 p-4 md:block">
-        {SECTIONS.map((section) => {
-          const items = visible.filter((v) => v.section === section);
-          if (items.length === 0) return null;
+    <ul
+      className={cn(
+        orientation === "vertical" ? "flex flex-col gap-0.5" : "flex gap-1 overflow-x-auto",
+      )}
+    >
+      {items
+        .filter((item) => isVisible(item, user?.roles))
+        .map((item) => {
+          const active = pathname === item.href;
           return (
-            <nav key={section} aria-label={section} className="mb-4">
-              <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-500">
-                {section}
-              </p>
-              <ul className="flex flex-col gap-0.5">
-                {items.map((item) => {
-                  const active = pathname === item.href && item.label !== "Manuscripts";
-                  return (
-                    <li key={`${section}-${item.label}`}>
-                      <Link
-                        href={item.href}
-                        aria-current={active ? "page" : undefined}
-                        className={cn(
-                          "block rounded-md px-3 py-1.5 text-sm",
-                          active
-                            ? "bg-brand-100 font-medium text-brand-900"
-                            : "text-slate-700 hover:bg-slate-200",
-                        )}
-                      >
-                        {item.label}
-                      </Link>
-                    </li>
-                  );
-                })}
-              </ul>
-            </nav>
+            <li key={item.href} className={cn(orientation === "horizontal" && "shrink-0")}>
+              <Link
+                href={item.href}
+                aria-current={active ? "page" : undefined}
+                className={cn(
+                  "flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium",
+                  active
+                    ? "bg-press-900 text-cream"
+                    : "text-slate-700 hover:bg-slate-900/5",
+                )}
+              >
+                <Icon name={item.icon} className="h-[18px] w-[18px]" />
+                {item.label}
+              </Link>
+            </li>
           );
         })}
-      </aside>
-      <div className="min-w-0 flex-1 p-4 md:p-6">{children}</div>
+    </ul>
+  );
+}
+
+/** Authenticated app shell: sidebar navigation plus the main content landmark. */
+export function AppShell({ children }: { children: React.ReactNode }) {
+  const { user } = useAuth();
+
+  return (
+    <div className="flex items-start">
+      <nav
+        aria-label="Primary"
+        className="sticky top-0 hidden h-[calc(100vh-7.5rem)] w-60 shrink-0 flex-col gap-6 overflow-y-auto border-r border-slate-200/90 bg-white/60 p-4 md:flex"
+      >
+        {NAV.map((group) => (
+          <div key={group.section}>
+            <p className="mb-1.5 px-3 text-xs font-semibold text-slate-500">{group.section}</p>
+            <NavList items={group.items} orientation="vertical" />
+          </div>
+        ))}
+        {user ? (
+          <div className="mt-auto rounded-lg border border-slate-200/90 bg-white p-3">
+            <p className="truncate text-[13px] font-semibold text-slate-900">{user.email}</p>
+            <p className="mt-0.5 text-xs text-slate-500">
+              {user.roles.join(" · ").replace(/_/g, " ")}
+            </p>
+          </div>
+        ) : null}
+      </nav>
+      <div className="min-w-0 flex-1">
+        <nav aria-label="Sections" className="border-b border-slate-200/90 bg-white/60 px-4 py-2 md:hidden">
+          <NavList items={NAV.flatMap((group) => group.items)} orientation="horizontal" />
+        </nav>
+        <main id="main-content" className="min-w-0 p-4 md:p-6 lg:p-8">
+          {children}
+        </main>
+      </div>
     </div>
   );
 }
