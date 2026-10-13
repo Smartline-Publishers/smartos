@@ -8,7 +8,9 @@ Consumes the sibling backend repo `../smartos-backend` (API contracts: `../smart
 
 ```bash
 npm install
-cp .env.example .env.local
+# create a local .env.local (never committed — company policy excludes
+# all env files from git) with:
+#   NEXT_PUBLIC_API_URL=http://localhost:8080/api/v1
 npm run dev
 ```
 

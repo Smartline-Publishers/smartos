@@ -19,7 +19,7 @@ export class ApiError extends Error {
 
 function baseUrl(): string {
   // Must include the version prefix, e.g. http://localhost:8080/api/v1
-  // (see .env.example and NEXT_PUBLIC_API_URL).
+  // (configured via NEXT_PUBLIC_API_URL in a local .env.local).
   return process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080/api/v1";
 }
 

@@ -2,7 +2,7 @@ node_modules
 .next
 out
 .env
+.env.example
 .env*.local
-!.env.example
 coverage
 *.tsbuildinfo
