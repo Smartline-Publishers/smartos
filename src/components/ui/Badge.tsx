@@ -37,6 +37,7 @@ const STATUS_STYLES: Record<string, string> = {
   PAID: "bg-green-100 text-green-800",
   active: "bg-green-100 text-green-800",
   inactive: "bg-slate-100 text-slate-600",
+  INACTIVE: "bg-slate-100 text-slate-600",
 };
 
 export function Badge({ status, className }: BadgeProps) {

@@ -23,6 +23,8 @@ interface AuthContextValue {
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
+  /** Re-read the stored token (e.g. after register/invite-accept set tokens directly). */
+  refreshSession: () => void;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -60,9 +62,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     router.push("/login");
   }, [router]);
 
+  const refreshSession = useCallback(() => {
+    setUser(userFromToken(getAccessToken()));
+  }, []);
+
   const value = useMemo(
-    () => ({ user, loading, login, logout }),
-    [user, loading, login, logout],
+    () => ({ user, loading, login, logout, refreshSession }),
+    [user, loading, login, logout, refreshSession],
   );
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

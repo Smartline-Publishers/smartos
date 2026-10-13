@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -56,6 +57,12 @@ export default function LoginPage() {
           </Button>
         </form>
       </Card>
+      <p className="mt-4 text-center text-sm text-slate-600">
+        New to SmartOS?{" "}
+        <Link href="/register" className="font-semibold text-brand-700 hover:underline">
+          Create your organization
+        </Link>
+      </p>
     </main>
   );
 }
