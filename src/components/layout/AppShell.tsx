@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/hooks/use-auth";
 import { cn } from "@/lib/cn";
-import { Book, BookOpen, ListChecks, Printer, ShieldCheck, SquaresFour, Users, Warehouse, type Icon as PhosphorIcon } from "@phosphor-icons/react";
+import { Book, BookOpen, Coins, ListChecks, Printer, Receipt, ShieldCheck, ShoppingCart, SquaresFour, User, Users, Warehouse, type Icon as PhosphorIcon } from "@phosphor-icons/react";
 import type { Role } from "@/types/auth";
 
 interface NavItem {
@@ -33,6 +33,20 @@ const NAV: { section: string; items: NavItem[] }[] = [
       { href: "/tasks", label: "Tasks", icon: ListChecks },
       { href: "/production", label: "Production", icon: Printer },
       { href: "/inventory", label: "Inventory", icon: Warehouse },
+    ],
+  },
+  {
+    section: "Sales",
+    items: [
+      { href: "/customers", label: "Customers", icon: User },
+      { href: "/orders", label: "Orders", icon: ShoppingCart },
+    ],
+  },
+  {
+    section: "Finance",
+    items: [
+      { href: "/finance", label: "Ledger & budgets", icon: Receipt },
+      { href: "/royalties", label: "Royalties", icon: Coins },
     ],
   },
   {
