@@ -10,7 +10,7 @@ export default function NotFound() {
         action={
           <Link
             href="/dashboard"
-            className="inline-flex h-10 items-center justify-center rounded-md bg-brand-600 px-4 text-sm font-medium text-white hover:bg-brand-700"
+            className="inline-flex h-10 items-center justify-center rounded-md bg-brand-600 px-4 text-sm font-medium text-white hover:bg-brand-700 dark:bg-brand-500 dark:hover:bg-brand-400"
           >
             Go to dashboard
           </Link>

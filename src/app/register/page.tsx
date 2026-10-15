@@ -7,6 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import Link from "next/link";
 import { Card } from "@/components/ui/Card";
+import { Brand } from "@/components/layout/Brand";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { useAuth } from "@/hooks/use-auth";
@@ -48,7 +49,7 @@ export default function RegisterPage() {
     setSubmitting(true);
     try {
       await registerOrg({ ...org, ...admin });
-      refreshSession();
+      refreshSession(admin.adminEmail);
       router.push("/dashboard");
     } catch (e) {
       if (e instanceof ApiError) setServerError(e.message);
@@ -62,6 +63,7 @@ export default function RegisterPage() {
   return (
     <main id="main-content" className="mx-auto max-w-lg py-10">
       <h1 className="sr-only">Create your SmartOS organization</h1>
+      <Brand tone="light" className="mb-6 text-center" />
       <ol className="mb-4 flex items-center gap-2 text-sm" aria-label="Registration progress">
         {["Organization", "Your account"].map((label, i) => (
           <li key={label} className="flex items-center gap-2" aria-current={step === i + 1 ? "step" : undefined}>
@@ -71,13 +73,13 @@ export default function RegisterPage() {
                 step > i + 1
                   ? "bg-emerald-600 text-white"
                   : step === i + 1
-                    ? "bg-press-900 text-cream"
-                    : "bg-slate-200 text-slate-600"
+                    ? "bg-brand-900 text-cream"
+                    : "bg-slate-200 text-slate-600 dark:bg-neutral-800 dark:text-neutral-300"
               }`}
             >
               {i + 1}
             </span>
-            <span className={step === i + 1 ? "font-semibold text-slate-900" : "text-slate-500"}>
+            <span className={step === i + 1 ? "font-semibold text-slate-900 dark:text-neutral-100" : "text-slate-500 dark:text-neutral-400"}>
               {label}
             </span>
             {i < 1 ? <span aria-hidden="true" className="text-slate-300">→</span> : null}
@@ -102,7 +104,7 @@ export default function RegisterPage() {
               error={orgForm.formState.errors.organizationName?.message}
               {...orgForm.register("organizationName")}
             />
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-slate-500 dark:text-neutral-400">
               Your web address slug (e.g. smartline-publishers) is derived from the name.
             </p>
             <Button type="submit">Continue</Button>
@@ -142,7 +144,7 @@ export default function RegisterPage() {
               {...adminForm.register("adminPassword")}
             />
             {serverError ? (
-              <p role="alert" className="text-sm text-red-600">
+              <p role="alert" className="text-sm text-red-600 dark:text-red-400">
                 {serverError}
               </p>
             ) : null}
@@ -158,8 +160,8 @@ export default function RegisterPage() {
         </Card>
       ) : null}
 
-      <p className="mt-4 text-center text-sm text-slate-600">
-        Already have an account? <Link href="/login" className="font-semibold text-brand-700 hover:underline">Log in</Link>
+      <p className="mt-4 text-center text-sm text-slate-600 dark:text-neutral-400">
+        Already have an account? <Link href="/login" className="font-semibold text-brand-700 hover:underline dark:text-brand-300">Log in</Link>
       </p>
     </main>
   );

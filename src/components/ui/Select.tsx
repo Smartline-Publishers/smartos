@@ -16,8 +16,8 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
   function Select({ label, options, error, id, className, required, ...rest }, ref) {
     const selectId = id ?? `select-${label.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`;
     return (
-      <div className="flex flex-col gap-1">
-        <label htmlFor={selectId} className="text-sm font-medium text-slate-700">
+      <div className="flex flex-col gap-1.5">
+        <label htmlFor={selectId} className="text-xs font-bold text-ink dark:text-neutral-200">
           {label}
           {required ? <span aria-hidden="true"> *</span> : null}
         </label>
@@ -26,9 +26,9 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
           id={selectId}
           aria-invalid={error ? true : undefined}
           className={cn(
-            "h-10 rounded-md border bg-white px-3 text-sm text-slate-900",
+            "h-10 rounded-lg border bg-white px-[11px] text-sm text-ink dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-100",
             "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500",
-            error ? "border-red-500" : "border-slate-300",
+            error ? "border-[#c2413a]" : "border-[#d8e0ec]",
             className,
           )}
           {...rest}
@@ -41,7 +41,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
           ))}
         </select>
         {error ? (
-          <p role="alert" className="text-xs text-red-600">
+          <p role="alert" className="text-xs text-[#c2413a] dark:text-red-400">
             {error}
           </p>
         ) : null}

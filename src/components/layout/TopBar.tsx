@@ -1,20 +1,46 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/use-auth";
-import { Button } from "@/components/ui/Button";
-import { MagnifyingGlass } from "@phosphor-icons/react";
+import { useOrg } from "@/hooks/use-org";
+import { ThemeSelector } from "@/components/layout/ThemeSelector";
+
+const CRUMBS: Record<string, string> = {
+  "/dashboard": "Overview",
+  "/reports": "Reports",
+  "/books": "Book catalogue",
+  "/manuscripts": "Manuscripts",
+  "/contributors": "Contributors",
+  "/tasks": "Tasks",
+  "/production": "Production",
+  "/inventory": "Inventory",
+  "/customers": "Customers",
+  "/orders": "Orders",
+  "/finance": "Finance",
+  "/royalties": "Royalties",
+  "/users": "Users",
+  "/audit": "Audit log",
+  "/profile": "Profile",
+};
 
 function shortOrg(orgId: string | undefined): string {
   if (!orgId) return "No organization";
   return `Org ${orgId.slice(0, 8)}`;
 }
 
-/** Top bar: catalog search, organization indicator, account actions. */
+/** Top bar: section crumb, catalog search, org badge, theme switcher.
+ *  Fixed at the top of the shell's right column (shrink-0) — it never scrolls.
+ *
+ *  Account identity + logout live in the sidebar footer; they are intentionally
+ *  not repeated here (mobile keeps a compact logout icon button since the
+ *  sidebar footer is desktop-only).
+ */
 export function TopBar() {
   const router = useRouter();
-  const { user, logout } = useAuth();
+  const pathname = usePathname();
+  const { user } = useAuth();
+  const { org } = useOrg();
   const [query, setQuery] = useState("");
 
   const onSearch = (e: FormEvent) => {
@@ -22,58 +48,44 @@ export function TopBar() {
     router.push(`/books${query.trim() ? `?search=${encodeURIComponent(query.trim())}` : ""}`);
   };
 
-  const initial = user?.email ? user.email.charAt(0).toUpperCase() : "?";
+  const crumb = CRUMBS[pathname] ?? (pathname.startsWith("/books/") ? "Book catalogue" : pathname.startsWith("/orders/") ? "Orders" : "SmartOS");
 
   return (
-    <div className="flex items-center gap-3 border-b border-slate-200/90 bg-white px-4 py-2.5 md:px-6">
-      <form role="search" aria-label="Catalog search" onSubmit={onSearch} className="min-w-0 flex-1 sm:max-w-sm">
+    <div className="flex shrink-0 items-center gap-3 border-b border-line bg-white px-4 py-[13px] dark:border-neutral-800 dark:bg-neutral-900 md:gap-4 md:px-7 md:py-[17px]">
+      <p className="shrink-0 text-[16px] font-bold text-ink dark:text-neutral-100" aria-current="page">
+        {crumb}
+      </p>
+      <form
+        role="search"
+        aria-label="Catalog search"
+        onSubmit={onSearch}
+        className="hidden min-w-0 flex-1 sm:block sm:max-w-xs"
+      >
         <label htmlFor="catalog-search" className="sr-only">
           Search books by title or ISBN
         </label>
-        <div className="relative">
-          <span aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
-            <MagnifyingGlass size={16} aria-hidden="true" />
-          </span>
-          <input
-            id="catalog-search"
-            type="search"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search books…"
-            autoComplete="off"
-            className="h-9 w-full rounded-lg border border-slate-200 bg-slate-50 pl-9 pr-12 text-sm text-slate-900 placeholder:text-slate-400"
-          />
-          <kbd
-            aria-hidden="true"
-            className="pointer-events-none absolute right-3 top-1/2 hidden -translate-y-1/2 rounded border border-slate-200 bg-white px-1.5 text-[11px] font-medium text-slate-400 sm:block"
-          >
-            ⏎
-          </kbd>
-        </div>
+        <input
+          id="catalog-search"
+          type="search"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Search books…"
+          autoComplete="off"
+          className="h-9 w-full rounded-lg border border-[#d8e0ec] bg-white px-3 text-sm text-ink placeholder:text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-100 dark:placeholder:text-neutral-500"
+        />
       </form>
       <div className="ml-auto flex items-center gap-2 sm:gap-3">
         <span
-          title={user?.orgId ?? "Signed in without an organization"}
-          className="hidden rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-medium text-slate-600 lg:inline-block"
+          title={org ? `${org.name} (${org.slug})` : (user?.orgId ?? "Signed in without an organization")}
+          className="hidden items-center gap-1.5 rounded-full border border-line bg-white px-2.5 py-1 text-xs font-medium text-muted dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-400 lg:inline-flex"
         >
-          {shortOrg(user?.orgId)}
+          {org?.logoUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={org.logoUrl} alt="" aria-hidden="true" className="h-4 w-4 rounded object-contain" />
+          ) : null}
+          {org ? org.slug : shortOrg(user?.orgId)}
         </span>
-        {user ? (
-          <span className="flex min-w-0 items-center gap-2">
-            <span
-              aria-hidden="true"
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-press-800 text-sm font-bold text-cream"
-            >
-              {initial}
-            </span>
-            <span className="hidden max-w-44 truncate text-sm text-slate-700 md:inline" aria-live="polite">
-              {user.email}
-            </span>
-          </span>
-        ) : null}
-        <Button variant="ghost" size="sm" onClick={logout} aria-label="Log out">
-          Logout
-        </Button>
+        <ThemeSelector />
       </div>
     </div>
   );

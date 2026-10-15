@@ -33,4 +33,19 @@ describe("getSummary", () => {
     expect(summary.stale).toBe(false);
     expect(summary.totalBooks).toBe(3);
   });
+
+  it("rethrows authentication failures instead of masking them as sample data", async () => {
+    vi.stubGlobal("fetch", () =>
+      Promise.resolve(
+        new Response(
+          JSON.stringify({
+            success: false,
+            error: { code: "UNAUTHORIZED", message: "Authentication required" },
+          }),
+          { status: 401, headers: { "Content-Type": "application/json" } },
+        ),
+      ),
+    );
+    await expect(getSummary()).rejects.toMatchObject({ status: 401 });
+  });
 });

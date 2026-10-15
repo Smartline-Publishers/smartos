@@ -3,23 +3,77 @@
 @tailwind utilities;
 
 :root {
-  --brand: #1d63f1;
-  --bg: #f6f5f1;
-  --fg: #0f172a;
+  --brand: #dc2626;
+  --bg: #f5f7fb;
+  --fg: #172033;
   color-scheme: light;
+}
+
+/* Dark theme: toggled via the `dark` class on <html> by ThemeProvider.
+   Sets native control/scrollbar scheme plus the page base colors.
+   `html.dark` (not just `.dark`) so this always beats `:root` on specificity. */
+html.dark {
+  --brand: #f87171;
+  --bg: #0a0a0a;
+  --fg: #e5e5e5;
+  color-scheme: dark;
 }
 
 html {
   scroll-behavior: smooth;
+  height: 100%;
 }
 
 body {
   background: var(--bg);
   color: var(--fg);
+  font-size: 14px;
+  line-height: 1.45;
+  height: 100%;
+  /* App shell owns scrolling (sidebar nav + main content scroll
+     independently); avoid chained page-level scroll interference. */
+  overscroll-behavior-y: none;
 }
 
 ::selection {
-  background: #d9eaff;
+  background: #fecaca;
+}
+
+/*
+ * Themed scrollbars for the shell's independent scroll regions (sidebar nav,
+ * main content, dialogs). Native scrollbars otherwise render in the light
+ * style even when dark mode is active, which breaks the dark look.
+ * Thin, transparent track; thumb only. Honors reduced-motion implicitly
+ * (no animation involved).
+ */
+.shell-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgb(203 213 225) transparent;
+}
+.shell-scroll::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+.shell-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.shell-scroll::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  border: 3px solid transparent;
+  background-clip: content-box;
+  background-color: rgb(203 213 225);
+}
+.shell-scroll::-webkit-scrollbar-thumb:hover {
+  background-color: rgb(148 163 184);
+}
+html.dark .shell-scroll {
+  scrollbar-color: rgb(64 64 64) transparent;
+}
+html.dark .shell-scroll::-webkit-scrollbar-thumb {
+  background-color: rgb(64 64 64);
+}
+html.dark .shell-scroll::-webkit-scrollbar-thumb:hover {
+  background-color: rgb(82 82 82);
 }
 
 :focus-visible {
@@ -34,5 +88,27 @@ body {
   *::after {
     animation-duration: 0.01ms !important;
     transition-duration: 0.01ms !important;
+  }
+}
+
+/* Mobile More sheet + backdrop entrances (durations neutralized above
+   under prefers-reduced-motion). */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes sheet-up {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }

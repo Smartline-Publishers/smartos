@@ -11,7 +11,7 @@ const columns: Column<Book>[] = [
     key: "title",
     header: "Title",
     render: (b) => (
-      <Link href={`/books/${b.id}`} className="font-medium text-brand-700 hover:underline">
+      <Link href={`/books/${b.id}`} className="font-medium text-brand-700 hover:underline dark:text-brand-300">
         {b.title}
       </Link>
     ),

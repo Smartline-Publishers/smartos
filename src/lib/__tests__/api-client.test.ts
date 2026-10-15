@@ -69,4 +69,45 @@ describe("api-client", () => {
       "Bearer new-access",
     );
   });
+
+  it("shares a single refresh across concurrent 401s", async () => {
+    window.localStorage.setItem("smartos.accessToken", "expired");
+    window.localStorage.setItem("smartos.refreshToken", "r1");
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(new Response("unauthorized", { status: 401 }))
+      .mockResolvedValueOnce(new Response("unauthorized", { status: 401 }))
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({ data: { accessToken: "new-access", refreshToken: "r2" } }),
+          { status: 200, headers: { "Content-Type": "application/json" } },
+        ),
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ data: { ok: true } }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }),
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ data: { ok: true } }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }),
+      );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const [a, b] = await Promise.all([
+      api.get<{ ok: boolean }>("/books"),
+      api.get<{ ok: boolean }>("/tasks"),
+    ]);
+
+    expect(a).toEqual({ data: { ok: true } });
+    expect(b).toEqual({ data: { ok: true } });
+    const refreshCalls = fetchMock.mock.calls.filter(([url]) =>
+      String(url).includes("/auth/refresh"),
+    );
+    expect(refreshCalls).toHaveLength(1);
+    expect(fetchMock).toHaveBeenCalledTimes(5);
+  });
 });

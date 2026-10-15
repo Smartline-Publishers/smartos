@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { ProtectedRoute } from "@/components/layout/ProtectedRoute";
 import { AppShell } from "@/components/layout/AppShell";
-import { TopBar } from "@/components/layout/TopBar";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -46,7 +45,6 @@ export default function AuditPage() {
 
   return (
     <ProtectedRoute>
-      <TopBar />
       <AppShell>
         <div className="flex flex-col gap-4">
           <PageHeader
@@ -66,32 +64,32 @@ export default function AuditPage() {
             <EmptyState title="No audit entries yet" description="Mutations across the system will appear here." />
           ) : (
             <Card title="Entries">
-              <div className="overflow-x-auto rounded-md border border-slate-200">
+              <div className="shell-scroll overflow-x-auto rounded-md border border-slate-200 dark:border-neutral-800">
                 <table className="w-full border-collapse text-left text-sm">
                   <caption className="sr-only">Audit log entries</caption>
-                  <thead className="bg-slate-50">
+                  <thead className="bg-slate-50 dark:bg-neutral-800/60">
                     <tr>
-                      <th scope="col" className="px-3 py-2 font-semibold text-slate-700">Actor</th>
-                      <th scope="col" className="px-3 py-2 font-semibold text-slate-700">Action</th>
-                      <th scope="col" className="px-3 py-2 font-semibold text-slate-700">Record</th>
-                      <th scope="col" className="px-3 py-2 font-semibold text-slate-700">When</th>
+                      <th scope="col" className="px-3 py-2 font-semibold text-slate-700 dark:text-neutral-300">Actor</th>
+                      <th scope="col" className="px-3 py-2 font-semibold text-slate-700 dark:text-neutral-300">Action</th>
+                      <th scope="col" className="px-3 py-2 font-semibold text-slate-700 dark:text-neutral-300">Record</th>
+                      <th scope="col" className="px-3 py-2 font-semibold text-slate-700 dark:text-neutral-300">When</th>
                     </tr>
                   </thead>
                   <tbody>
                     {data.items.map((entry) => (
-                      <tr key={entry.id} className="border-t border-slate-200">
-                        <td className="px-3 py-2 text-slate-900">
+                      <tr key={entry.id} className="border-t border-slate-200 dark:border-neutral-800">
+                        <td className="px-3 py-2 text-slate-900 dark:text-neutral-100">
                           {entry.actorName ?? "System"}
                         </td>
-                        <td className="px-3 py-2 font-mono text-[13px] text-slate-700">
+                        <td className="px-3 py-2 font-mono text-[13px] text-slate-700 dark:text-neutral-300">
                           {entry.action}
                         </td>
-                        <td className="px-3 py-2 text-xs text-slate-500">
+                        <td className="px-3 py-2 text-xs text-slate-500 dark:text-neutral-400">
                           {[entry.entityType, entry.entityId?.slice(0, 8)]
                             .filter(Boolean)
                             .join(" · ") || "—"}
                         </td>
-                        <td className="px-3 py-2 text-xs tabular-nums text-slate-500">
+                        <td className="px-3 py-2 text-xs tabular-nums text-slate-500 dark:text-neutral-400">
                           {formatDateTime(entry.createdAt)}
                         </td>
                       </tr>

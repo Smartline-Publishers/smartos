@@ -1,22 +1,19 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
 import Link from "next/link";
 import { ProtectedRoute } from "@/components/layout/ProtectedRoute";
 import { AppShell } from "@/components/layout/AppShell";
-import { TopBar } from "@/components/layout/TopBar";
 import { PageHeader } from "@/components/ui/PageHeader";
-import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Spinner } from "@/components/ui/Spinner";
 import { Pagination } from "@/components/ui/Pagination";
+import { Modal } from "@/components/ui/Modal";
+import { CustomerForm } from "@/features/sales/CustomerForm";
 import {
-  CreateCustomerSchema,
   createCustomer,
   deleteCustomer,
   listCustomers,
@@ -33,6 +30,9 @@ export default function CustomersPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [formDirty, setFormDirty] = useState(false);
   const params = query.toParams();
 
   const refresh = useCallback(async () => {
@@ -52,76 +52,55 @@ export default function CustomersPage() {
     void refresh();
   }, [refresh]);
 
-  const {
-    register,
-    handleSubmit,
-    reset,
-    formState: { errors, isSubmitting },
-  } = useForm<CreateCustomerInput>({
-    resolver: zodResolver(CreateCustomerSchema),
-    defaultValues: { name: "", type: "INDIVIDUAL", email: "", phone: "", creditLimit: 0 },
-  });
-
   const onCreate = async (values: CreateCustomerInput) => {
     setActionError(null);
+    setCreating(true);
     try {
       await createCustomer(values);
-      reset();
-      query.setPage(1);
-      await refresh();
+      setCreateOpen(false);
+      setFormDirty(false);
+      if (params.page === 1) await refresh();
+      else query.setPage(1);
     } catch (e: unknown) {
       setActionError(e instanceof Error ? `Could not create customer: ${e.message}` : "Could not create customer");
+    } finally {
+      setCreating(false);
     }
   };
 
   return (
     <ProtectedRoute>
-      <TopBar />
       <AppShell>
         <div className="flex flex-col gap-4">
           <PageHeader
             title="Customers"
             description="Schools, bookshops, distributors and direct buyers."
+            actions={
+              <Button onClick={() => setCreateOpen(true)}>
+                New customer
+              </Button>
+            }
           />
           {actionError ? (
-            <p role="alert" className="rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700">
+            <p role="alert" className="rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-300">
               {actionError}
             </p>
           ) : null}
-          <Card title="New customer">
-            <form
-              onSubmit={handleSubmit(onCreate)}
-              className="grid gap-3 sm:grid-cols-[1fr_170px_1fr_140px_auto]"
-              aria-label="New customer form"
-            >
-              <Input label="Name" required error={errors.name?.message} {...register("name")} />
-              <Select
-                label="Type"
-                error={errors.type?.message}
-                options={[
-                  { value: "INDIVIDUAL", label: "Individual" },
-                  { value: "SCHOOL", label: "School" },
-                  { value: "BOOKSHOP", label: "Bookshop" },
-                  { value: "DISTRIBUTOR", label: "Distributor" },
-                  { value: "OTHER", label: "Other" },
-                ]}
-                {...register("type")}
-              />
-              <Input label="Email" type="email" hint="Optional" error={errors.email?.message} {...register("email")} />
-              <Input
-                label="Credit limit (GHS)"
-                type="number"
-                min={0}
-                error={errors.creditLimit?.message}
-                {...register("creditLimit")}
-              />
-              <div className="flex items-end">
-                <Button type="submit" disabled={isSubmitting}>
-                  {isSubmitting ? "Adding…" : "Add customer"}
-                </Button>
-              </div>
-            </form>
-          </Card>
+          <Modal
+            open={createOpen}
+            title="New customer"
+            description="Add a buyer for orders."
+            onClose={() => setCreateOpen(false)}
+            isDirty={formDirty}
+          >
+            <CustomerForm
+              key={createOpen ? "customer-new" : "customer-closed"}
+              onSubmit={onCreate}
+              submitting={creating}
+              onCancel={() => setCreateOpen(false)}
+              onDirtyChange={setFormDirty}
+            />
+          </Modal>
 
           <Input
             label="Search"
@@ -138,39 +117,39 @@ export default function CustomersPage() {
             <EmptyState title="No customers found" description="Try a different search." />
           ) : (
             <>
-              <p className="text-[13px] text-slate-600" aria-live="polite">
-                <span className="font-semibold tabular-nums text-slate-900">{data.total}</span>{" "}
+              <p className="text-[13px] text-slate-600 dark:text-neutral-400" aria-live="polite">
+                <span className="font-semibold tabular-nums text-slate-900 dark:text-neutral-100">{data.total}</span>{" "}
                 {data.total === 1 ? "customer" : "customers"}
               </p>
               <ul className="flex flex-col gap-2">
                 {data.items.map((c) => (
                   <li
                     key={c.id}
-                    className="flex flex-wrap items-center gap-x-4 gap-y-1 rounded-xl border border-slate-200/90 bg-white px-4 py-3 shadow-[0_1px_2px_rgb(15_23_42/0.05)]"
+                    className="flex flex-wrap items-center gap-x-4 gap-y-1 rounded-xl border border-slate-200/90 bg-white px-4 py-3 shadow-[0_1px_2px_rgb(15_23_42/0.05)] dark:border-neutral-800 dark:bg-neutral-900 dark:shadow-none"
                   >
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-semibold text-slate-900">{c.name}</p>
-                      <p className="text-xs capitalize text-slate-500">
+                      <p className="truncate text-sm font-semibold text-slate-900 dark:text-neutral-100">{c.name}</p>
+                      <p className="text-xs capitalize text-slate-500 dark:text-neutral-400">
                         {c.type.toLowerCase().replace("_", " ")}
                         {c.email ? ` · ${c.email}` : ""}
                       </p>
                     </div>
-                    <span className="text-xs text-slate-500">
+                    <span className="text-xs text-slate-500 dark:text-neutral-400">
                       Credit{" "}
-                      <span className="font-semibold tabular-nums text-slate-900">
+                      <span className="font-semibold tabular-nums text-slate-900 dark:text-neutral-100">
                         {formatGHS(c.creditLimit)}
                       </span>
                     </span>
                     <Link
                       href="/orders"
-                      className="text-[13px] font-semibold text-brand-700 hover:underline"
+                      className="text-[13px] font-semibold text-brand-700 hover:underline dark:text-brand-300"
                     >
                       Orders
                     </Link>
                     <Button
                       size="sm"
                       variant="ghost"
-                      className="text-red-700 hover:bg-red-50"
+                      className="text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950"
                       onClick={() => {
                         if (window.confirm(`Delete customer "${c.name}"?`)) {
                           void (async () => {

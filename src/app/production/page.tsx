@@ -1,21 +1,16 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
 import { ProtectedRoute } from "@/components/layout/ProtectedRoute";
 import { AppShell } from "@/components/layout/AppShell";
-import { TopBar } from "@/components/layout/TopBar";
 import { PageHeader } from "@/components/ui/PageHeader";
-import { Card } from "@/components/ui/Card";
-import { Input } from "@/components/ui/Input";
-import { Select } from "@/components/ui/Select";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
+import { Modal } from "@/components/ui/Modal";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Spinner } from "@/components/ui/Spinner";
+import { JobForm } from "@/features/production/JobForm";
 import {
-  CreateJobSchema,
   cancelJob,
   completeJob,
   createJob,
@@ -49,6 +44,9 @@ export default function ProductionPage() {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [runQty, setRunQty] = useState<Record<string, string>>({});
   const [postWh, setPostWh] = useState<Record<string, string>>({});
+  const [jobModalOpen, setJobModalOpen] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [formDirty, setFormDirty] = useState(false);
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -89,87 +87,61 @@ export default function ProductionPage() {
     [refresh],
   );
 
-  const {
-    register,
-    handleSubmit,
-    reset,
-    formState: { errors, isSubmitting },
-  } = useForm<CreateJobInput>({
-    resolver: zodResolver(CreateJobSchema),
-    defaultValues: { bookId: "", manuscriptId: "", quantity: 1000, printer: "", dueDate: "" },
-  });
-
   const onCreate = async (values: CreateJobInput) => {
-    await runAction("new", async () => {
+    setCreating(true);
+    try {
       await createJob(values);
-      reset();
-    }, "Could not create job");
+      setJobModalOpen(false);
+      setFormDirty(false);
+      await refresh();
+    } catch (e: unknown) {
+      setActionError(e instanceof Error ? `Could not create job: ${e.message}` : "Could not create job");
+    } finally {
+      setCreating(false);
+    }
   };
 
   return (
     <ProtectedRoute>
-      <TopBar />
       <AppShell>
         <div className="flex flex-col gap-4">
           <PageHeader
             title="Production"
             description="Print jobs from planning to completion, with print runs posted into stock."
+            actions={
+              <Button onClick={() => setJobModalOpen(true)}>
+                New print job
+              </Button>
+            }
           />
           {actionError ? (
-            <p role="alert" className="rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700">
+            <p role="alert" className="rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-300">
               {actionError}
             </p>
           ) : null}
-          <Card title="New print job">
-            <form
-              onSubmit={handleSubmit(onCreate)}
-              className="grid gap-3 sm:grid-cols-[1fr_140px_1fr_180px_auto]"
-              aria-label="New print job form"
-            >
-              <Select
-                label="Book"
-                required
-                error={errors.bookId?.message}
-                options={[
-                  { value: "", label: "Choose a book" },
-                  ...books.map((b) => ({ value: b.id, label: b.title })),
-                ]}
-                {...register("bookId")}
-              />
-              <Input
-                label="Quantity"
-                type="number"
-                min={1}
-                required
-                error={errors.quantity?.message}
-                {...register("quantity")}
-              />
-              <Input
-                label="Printer"
-                hint="Optional"
-                error={errors.printer?.message}
-                {...register("printer")}
-              />
-              <Input
-                label="Due date"
-                type="date"
-                error={errors.dueDate?.message}
-                {...register("dueDate")}
-              />
-              <div className="flex items-end">
-                <Button type="submit" disabled={isSubmitting || busyId !== null}>
-                  {isSubmitting ? "Creating…" : "Create job"}
-                </Button>
-              </div>
-            </form>
-          </Card>
+          <Modal
+            open={jobModalOpen}
+            title="New print job"
+            description="Plan a print run for a catalog title."
+            onClose={() => setJobModalOpen(false)}
+            isDirty={formDirty}
+          >
+            <JobForm
+              key={jobModalOpen ? "job-new" : "job-closed"}
+              books={books}
+              onSubmit={onCreate}
+              submitting={creating || busyId !== null}
+              onCancel={() => setJobModalOpen(false)}
+              onDirtyChange={setFormDirty}
+            />
+          </Modal>
 
           {loading ? (
             <Spinner label="Loading production jobs…" />
           ) : error ? (
             <EmptyState title="Could not load production" description={error} />
           ) : !jobs || jobs.length === 0 ? (
-            <EmptyState title="No jobs yet" description="Create the first print job above." />
+            <EmptyState title="No jobs yet" description="Create the first print job with the button above." />
           ) : (
             <div
               className="grid items-start gap-4 md:grid-cols-2 xl:grid-cols-4"
@@ -182,16 +154,16 @@ export default function ProductionPage() {
                   <section
                     key={status}
                     aria-label={`${jobStatusLabel(status)} jobs`}
-                    className="flex min-w-0 flex-col gap-2 rounded-xl border border-slate-200/90 bg-white/60 p-3"
+                    className="flex min-w-0 flex-col gap-2 rounded-xl border border-slate-200/90 bg-white/60 p-3 dark:border-neutral-800 dark:bg-neutral-900/60"
                   >
                     <header className="flex items-baseline justify-between gap-2 px-1">
-                      <h2 className="text-sm font-bold text-slate-900">{jobStatusLabel(status)}</h2>
-                      <span className="rounded-full bg-slate-200/70 px-2 py-0.5 text-xs font-semibold tabular-nums text-slate-700">
+                      <h2 className="text-sm font-bold text-slate-900 dark:text-neutral-100">{jobStatusLabel(status)}</h2>
+                      <span className="rounded-full bg-slate-200/70 px-2 py-0.5 text-xs font-semibold tabular-nums text-slate-700 dark:bg-neutral-800 dark:text-neutral-300">
                         {column.length}
                       </span>
                     </header>
                     {column.length === 0 ? (
-                      <p className="px-1 py-3 text-[13px] text-slate-400">Empty</p>
+                      <p className="px-1 py-3 text-[13px] text-slate-400 dark:text-neutral-500">Empty</p>
                     ) : (
                       column.map((job) => (
                         <JobCard
@@ -241,38 +213,38 @@ function JobCard({
   return (
     <article
       role="listitem"
-      className="flex flex-col gap-2 rounded-lg border border-slate-200 bg-white p-3 shadow-[0_1px_2px_rgb(15_23_42/0.05)]"
+      className="flex flex-col gap-2 rounded-lg border border-slate-200 bg-white p-3 shadow-[0_1px_2px_rgb(15_23_42/0.05)] dark:border-neutral-700 dark:bg-neutral-900 dark:shadow-none"
     >
       <div className="flex items-start justify-between gap-2">
-        <h3 className="text-sm font-semibold leading-snug text-slate-900">
+        <h3 className="text-sm font-semibold leading-snug text-slate-900 dark:text-neutral-100">
           {job.bookTitle ?? "Untitled book"}
         </h3>
         <Badge status={job.status} />
       </div>
-      <p className="text-xs text-slate-500">
-        <span className="font-semibold tabular-nums text-slate-700">{job.quantity}</span> copies
+      <p className="text-xs text-slate-500 dark:text-neutral-400">
+        <span className="font-semibold tabular-nums text-slate-700 dark:text-neutral-300">{job.quantity}</span> copies
         {job.printer ? ` · ${job.printer}` : ""}
         {job.dueDate ? ` · due ${formatDate(job.dueDate)}` : ""}
       </p>
-      <div className="flex flex-col gap-1.5 border-t border-slate-100 pt-2">
-        <p className="text-xs font-semibold text-slate-600">
+      <div className="flex flex-col gap-1.5 border-t border-slate-100 pt-2 dark:border-neutral-800">
+        <p className="text-xs font-semibold text-slate-600 dark:text-neutral-400">
           Runs ({job.runs.filter((r) => r.posted).length}/{job.runs.length} posted)
         </p>
         {job.runs.length === 0 ? (
-          <p className="text-xs text-slate-400">No runs yet</p>
+          <p className="text-xs text-slate-400 dark:text-neutral-500">No runs yet</p>
         ) : (
           job.runs.map((run) => (
             <div key={run.id} className="flex flex-wrap items-center gap-2 text-xs">
-              <span className="font-semibold tabular-nums text-slate-900">
+              <span className="font-semibold tabular-nums text-slate-900 dark:text-neutral-100">
                 {run.quantity.toLocaleString()}
               </span>
               {run.posted ? (
-                <span className="rounded-full bg-green-100 px-2 py-0.5 font-semibold text-green-800">
+                <span className="rounded-full bg-green-100 px-2 py-0.5 font-semibold text-green-800 dark:bg-green-950 dark:text-green-300">
                   Posted{run.postedAt ? ` ${formatDate(run.postedAt)}` : ""}
                 </span>
               ) : (
                 <>
-                  <span className="rounded-full bg-slate-100 px-2 py-0.5 font-semibold text-slate-600">
+                  <span className="rounded-full bg-slate-100 px-2 py-0.5 font-semibold text-slate-600 dark:bg-neutral-800 dark:text-neutral-300">
                     Unposted
                   </span>
                   {editable && warehouses.length > 0 ? (
@@ -282,7 +254,7 @@ function JobCard({
                         value={postWh}
                         onChange={(e) => onPostWh(e.target.value)}
                         disabled={busy}
-                        className="h-8 max-w-32 rounded-md border border-slate-300 bg-white px-1 text-xs"
+                        className="h-8 max-w-32 rounded-md border border-slate-300 bg-white px-1 text-xs text-ink dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-100"
                       >
                         {warehouses.map((w) => (
                           <option key={w.id} value={w.id}>
@@ -310,7 +282,7 @@ function JobCard({
                     <Button
                       size="sm"
                       variant="ghost"
-                      className="text-red-700 hover:bg-red-50"
+                      className="text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950"
                       disabled={busy}
                       onClick={() => {
                         if (window.confirm(`Delete unposted run of ${run.quantity} copies?`)) {
@@ -350,7 +322,7 @@ function JobCard({
               value={runQty}
               onChange={(e) => onRunQty(e.target.value)}
               disabled={busy}
-              className="h-8 w-24 rounded-md border border-slate-300 bg-white px-2 text-xs"
+              className="h-8 w-24 rounded-md border border-slate-300 bg-white px-2 text-xs text-ink dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-100"
             />
             <Button size="sm" variant="ghost" type="submit" disabled={busy || !runQty}>
               Add run
@@ -358,7 +330,7 @@ function JobCard({
           </form>
         ) : null}
       </div>
-      <div className="flex flex-wrap gap-1.5 border-t border-slate-100 pt-2">
+      <div className="flex flex-wrap gap-1.5 border-t border-slate-100 pt-2 dark:border-neutral-800">
         {job.status === "PLANNED" ? (
           <Button size="sm" disabled={busy} onClick={() => onAction(() => startJob(job.id), "Start failed")}>
             Start
@@ -382,7 +354,7 @@ function JobCard({
             <Button
               size="sm"
               variant="ghost"
-              className="text-red-700 hover:bg-red-50"
+              className="text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950"
               disabled={busy}
               onClick={() => {
                 if (window.confirm("Delete this job and its unposted runs?")) {

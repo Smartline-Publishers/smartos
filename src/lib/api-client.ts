@@ -106,20 +106,48 @@ async function refreshAccessToken(): Promise<string | null> {
   }
 }
 
+/**
+ * Single-flight refresh: concurrent 401s share one in-flight refresh instead
+ * of each racing POST /auth/refresh with the same token. Racing is not just
+ * wasteful — the backend rotates refresh tokens, so the losers present an
+ * already-rotated token, which the server treats as compromise and revokes
+ * the whole token family (logging the user out).
+ */
+let inflightRefresh: Promise<string | null> | null = null;
+
+function sharedRefresh(): Promise<string | null> {
+  if (!inflightRefresh) {
+    inflightRefresh = refreshAccessToken().finally(() => {
+      inflightRefresh = null;
+    });
+  }
+  return inflightRefresh;
+}
+
 async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   const doFetch = async (token: string | null): Promise<Response> => {
     const headers = new Headers(init.headers);
-    headers.set("Content-Type", "application/json");
+    // Multipart uploads carry their own content type (with boundary);
+    // forcing JSON here would corrupt them.
+    if (!(init.body instanceof FormData)) {
+      headers.set("Content-Type", "application/json");
+    }
     if (token) headers.set("Authorization", `Bearer ${token}`);
     return fetch(`${baseUrl()}${path}`, { ...init, headers });
   };
 
   let res = await doFetch(getAccessToken());
   if (res.status === 401) {
-    // Attempt exactly one silent refresh, then retry once.
-    const next = await refreshAccessToken();
+    // Attempt exactly one (shared) silent refresh, then retry once.
+    const next = await sharedRefresh();
     if (next) {
       res = await doFetch(next);
+      if (res.status === 401) {
+        // A fresh token was still rejected: credentials are invalid, not
+        // merely expired. Drop them so callers observe a clean logged-out
+        // state instead of retrying with a dead token.
+        clearTokens();
+      }
     } else {
       await parseError(res);
     }
@@ -156,5 +184,9 @@ export const api = {
   },
   del<T>(path: string, init?: RequestInit): Promise<T> {
     return request<T>(path, { ...init, method: "DELETE" });
+  },
+  /** Multipart file upload (e.g. avatars, logos). */
+  upload<T>(path: string, form: FormData, init?: RequestInit): Promise<T> {
+    return request<T>(path, { ...init, method: "POST", body: form });
   },
 };

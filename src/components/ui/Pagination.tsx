@@ -23,7 +23,7 @@ export function Pagination({ page, pageSize, total, onPageChange }: PaginationPr
       >
         Prev
       </Button>
-      <span aria-live="polite" className="text-sm text-slate-600">
+      <span aria-live="polite" className="text-sm text-slate-600 dark:text-neutral-400">
         Page {safePage} of {totalPages} ({total} items)
       </span>
       <Button

@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { CreateBookSchema, type CreateBookInput } from "@/features/books/api";
@@ -11,17 +12,23 @@ export interface BookFormProps {
   defaultValues?: Partial<CreateBookInput>;
   onSubmit: (values: CreateBookInput) => Promise<void> | void;
   submitting?: boolean;
+  onCancel?: () => void;
+  onDirtyChange?: (dirty: boolean) => void;
 }
 
-export function BookForm({ defaultValues, onSubmit, submitting }: BookFormProps) {
+export function BookForm({ defaultValues, onSubmit, submitting, onCancel, onDirtyChange }: BookFormProps) {
   const {
     register,
     handleSubmit,
-    formState: { errors },
+    formState: { errors, isDirty },
   } = useForm<CreateBookInput>({
     resolver: zodResolver(CreateBookSchema),
     defaultValues: { title: "", isbn: "", status: "DRAFT", ...defaultValues },
   });
+
+  useEffect(() => {
+    onDirtyChange?.(isDirty);
+  }, [isDirty, onDirtyChange]);
 
   return (
     <form
@@ -53,9 +60,16 @@ export function BookForm({ defaultValues, onSubmit, submitting }: BookFormProps)
         ]}
         {...register("status")}
       />
-      <Button type="submit" disabled={submitting}>
-        {submitting ? "Saving…" : "Save book"}
-      </Button>
+      <div className="flex flex-wrap gap-2">
+        <Button type="submit" disabled={submitting}>
+          {submitting ? "Saving…" : "Save book"}
+        </Button>
+        {onCancel ? (
+          <Button type="button" variant="ghost" onClick={onCancel}>
+            Cancel
+          </Button>
+        ) : null}
+      </div>
     </form>
   );
 }

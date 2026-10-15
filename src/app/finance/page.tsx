@@ -1,23 +1,20 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
 import { ProtectedRoute } from "@/components/layout/ProtectedRoute";
 import { AppShell } from "@/components/layout/AppShell";
-import { TopBar } from "@/components/layout/TopBar";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card } from "@/components/ui/Card";
-import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
+import { Modal } from "@/components/ui/Modal";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Spinner } from "@/components/ui/Spinner";
 import { Pagination } from "@/components/ui/Pagination";
+import { TransactionForm } from "@/features/finance/TransactionForm";
+import { BudgetForm } from "@/features/finance/BudgetForm";
 import {
-  CreateBudgetSchema,
-  CreateTransactionSchema,
   createBudget,
   deleteBudget,
   listBudgets,
@@ -34,10 +31,10 @@ import { usePagedQuery } from "@/hooks/use-paged-query";
 import { formatGHS } from "@/lib/format";
 
 const TYPE_TONE: Record<TransactionType, string> = {
-  SALE: "text-emerald-700",
-  REFUND: "text-amber-700",
-  EXPENSE: "text-rose-700",
-  ROYALTY_PAYOUT: "text-violet-700",
+  SALE: "text-emerald-700 dark:text-emerald-400",
+  REFUND: "text-amber-700 dark:text-amber-400",
+  EXPENSE: "text-rose-700 dark:text-rose-400",
+  ROYALTY_PAYOUT: "text-violet-700 dark:text-violet-400",
 };
 
 export default function FinancePage() {
@@ -49,6 +46,10 @@ export default function FinancePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [recordOpen, setRecordOpen] = useState(false);
+  const [budgetOpen, setBudgetOpen] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [formDirty, setFormDirty] = useState(false);
   const params = query.toParams();
 
   const refresh = useCallback(async () => {
@@ -75,46 +76,106 @@ export default function FinancePage() {
     void refresh();
   }, [refresh]);
 
-  const runAction = useCallback(
-    async (fn: () => Promise<unknown>, failure: string) => {
-      setActionError(null);
-      try {
-        await fn();
-        await refresh();
-      } catch (e: unknown) {
-        setActionError(e instanceof Error ? `${failure}: ${e.message}` : failure);
-      }
-    },
-    [refresh],
-  );
+  const onRecord = async (values: CreateTransactionInput) => {
+    setSubmitting(true);
+    try {
+      await recordTransaction(values);
+      setRecordOpen(false);
+      setFormDirty(false);
+      await refresh();
+    } catch (e: unknown) {
+      setActionError(e instanceof Error ? `Could not record transaction: ${e.message}` : "Could not record transaction");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const onCreateBudget = async (values: CreateBudgetInput) => {
+    setSubmitting(true);
+    try {
+      await createBudget(values);
+      setBudgetOpen(false);
+      setFormDirty(false);
+      await refresh();
+    } catch (e: unknown) {
+      setActionError(e instanceof Error ? `Could not create budget: ${e.message}` : "Could not create budget");
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   return (
     <ProtectedRoute>
-      <TopBar />
       <AppShell>
         <div className="flex flex-col gap-4">
           <PageHeader
             title="Finance"
             description="Immutable transaction ledger and budgets with planned-versus-actual tracking."
+            actions={
+              <>
+                <Button variant="ghost" onClick={() => setBudgetOpen(true)}>
+                  New budget
+                </Button>
+                <Button onClick={() => setRecordOpen(true)}>
+                  Record transaction
+                </Button>
+              </>
+            }
           />
           {actionError ? (
-            <p role="alert" className="rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700">
+            <p role="alert" className="rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-300">
               {actionError}
             </p>
           ) : null}
+          <Modal
+            open={recordOpen}
+            title="Record transaction"
+            description="Record an expense or a refund against a fulfilled order."
+            onClose={() => setRecordOpen(false)}
+            isDirty={formDirty}
+          >
+            <TransactionForm
+              key={recordOpen ? "txn-new" : "txn-closed"}
+              fulfilledOrders={fulfilledOrders}
+              onSubmit={onRecord}
+              submitting={submitting}
+              onCancel={() => setRecordOpen(false)}
+              onDirtyChange={setFormDirty}
+            />
+          </Modal>
+          <Modal
+            open={budgetOpen}
+            title="New budget"
+            description="Plan spending for a category and period."
+            onClose={() => setBudgetOpen(false)}
+            isDirty={formDirty}
+          >
+            <BudgetForm
+              key={budgetOpen ? "budget-new" : "budget-closed"}
+              onSubmit={onCreateBudget}
+              submitting={submitting}
+              onCancel={() => setBudgetOpen(false)}
+              onDirtyChange={setFormDirty}
+            />
+          </Modal>
           {loading ? (
             <Spinner label="Loading finance…" />
           ) : error ? (
             <EmptyState title="Could not load finance" description={error} />
           ) : (
             <>
-              <div className="grid items-start gap-4 xl:grid-cols-2">
-                <RecordFormCard
-                  fulfilledOrders={fulfilledOrders}
-                  onAction={runAction}
-                />
-                <BudgetCard budgets={budgets} onAction={runAction} />
-              </div>
+              <BudgetsCard
+                budgets={budgets}
+                onDelete={async (id) => {
+                  setActionError(null);
+                  try {
+                    await deleteBudget(id);
+                    await refresh();
+                  } catch (e: unknown) {
+                    setActionError(e instanceof Error ? `Delete failed: ${e.message}` : "Delete failed");
+                  }
+                }}
+              />
               <Card
                 title="Ledger"
                 action={
@@ -141,30 +202,30 @@ export default function FinancePage() {
                   <EmptyState title="No transactions" description="Sales post automatically on fulfilment; expenses and refunds are recorded manually." />
                 ) : (
                   <>
-                    <div className="overflow-x-auto rounded-md border border-slate-200">
+                    <div className="shell-scroll overflow-x-auto rounded-md border border-slate-200 dark:border-neutral-800">
                       <table className="w-full border-collapse text-left text-sm">
                         <caption className="sr-only">Financial transactions</caption>
-                        <thead className="bg-slate-50">
+                        <thead className="bg-slate-50 dark:bg-neutral-800/60">
                           <tr>
-                            <th scope="col" className="px-3 py-2 font-semibold text-slate-700">Type</th>
-                            <th scope="col" className="px-3 py-2 text-right font-semibold text-slate-700">Amount</th>
-                            <th scope="col" className="px-3 py-2 font-semibold text-slate-700">Category</th>
-                            <th scope="col" className="px-3 py-2 font-semibold text-slate-700">Description</th>
-                            <th scope="col" className="px-3 py-2 font-semibold text-slate-700">Date</th>
+                            <th scope="col" className="px-3 py-2 font-semibold text-slate-700 dark:text-neutral-300">Type</th>
+                            <th scope="col" className="px-3 py-2 text-right font-semibold text-slate-700 dark:text-neutral-300">Amount</th>
+                            <th scope="col" className="px-3 py-2 font-semibold text-slate-700 dark:text-neutral-300">Category</th>
+                            <th scope="col" className="px-3 py-2 font-semibold text-slate-700 dark:text-neutral-300">Description</th>
+                            <th scope="col" className="px-3 py-2 font-semibold text-slate-700 dark:text-neutral-300">Date</th>
                           </tr>
                         </thead>
                         <tbody>
                           {data.items.map((t) => (
-                            <tr key={t.id} className="border-t border-slate-200">
+                            <tr key={t.id} className="border-t border-slate-200 dark:border-neutral-800">
                               <td className="px-3 py-2">
                                 <Badge status={t.type} />
                               </td>
                               <td className={`px-3 py-2 text-right font-semibold tabular-nums ${TYPE_TONE[t.type]}`}>
                                 {formatGHS(t.amount)}
                               </td>
-                              <td className="px-3 py-2 text-slate-700">{t.category ?? "—"}</td>
-                              <td className="max-w-56 truncate px-3 py-2 text-slate-600">{t.description ?? "—"}</td>
-                              <td className="px-3 py-2 text-xs text-slate-500">
+                              <td className="px-3 py-2 text-slate-700 dark:text-neutral-300">{t.category ?? "—"}</td>
+                              <td className="max-w-56 truncate px-3 py-2 text-slate-600 dark:text-neutral-400">{t.description ?? "—"}</td>
+                              <td className="px-3 py-2 text-xs text-slate-500 dark:text-neutral-400">
                                 {t.createdAt ? new Date(t.createdAt).toLocaleDateString("en-GH") : "—"}
                               </td>
                             </tr>
@@ -191,149 +252,27 @@ export default function FinancePage() {
   );
 }
 
-function RecordFormCard({
-  fulfilledOrders,
-  onAction,
-}: {
-  fulfilledOrders: Order[];
-  onAction: (fn: () => Promise<unknown>, failure: string) => void;
-}) {
-  const {
-    register,
-    handleSubmit,
-    reset,
-    watch,
-    formState: { errors, isSubmitting },
-  } = useForm<CreateTransactionInput>({
-    resolver: zodResolver(CreateTransactionSchema),
-    defaultValues: { type: "EXPENSE", amount: 0, category: "", referenceId: "", description: "" },
-  });
-  const kind = watch("type");
-
-  return (
-    <Card title="Record expense or refund">
-      <form
-        onSubmit={handleSubmit(async (v) => {
-          await onAction(async () => {
-            await recordTransaction(v);
-            reset();
-          }, "Could not record transaction");
-        })}
-        className="grid gap-3 sm:grid-cols-2"
-        aria-label="Record transaction form"
-      >
-        <Select
-          label="Type"
-          error={errors.type?.message}
-          options={[
-            { value: "EXPENSE", label: "Expense" },
-            { value: "REFUND", label: "Refund (needs order)" },
-          ]}
-          {...register("type")}
-        />
-        <Input
-          label="Amount (GHS)"
-          type="number"
-          min={0}
-          step="0.01"
-          required
-          error={errors.amount?.message}
-          {...register("amount")}
-        />
-        {kind === "REFUND" ? (
-          <div className="sm:col-span-2">
-            <Select
-              label="Fulfilled order"
-              required
-              error={errors.referenceId?.message}
-              options={[
-                { value: "", label: "Choose an order" },
-                ...fulfilledOrders.map((o) => ({
-                  value: o.id,
-                  label: `${o.customerName ?? "Order"} · ${formatGHS(o.total)}`,
-                })),
-              ]}
-              {...register("referenceId")}
-            />
-          </div>
-        ) : null}
-        <Input label="Category" hint="Optional" error={errors.category?.message} {...register("category")} />
-        <Input label="Description" hint="Optional" error={errors.description?.message} {...register("description")} />
-        <div className="sm:col-span-2">
-          <p className="mb-2 text-xs text-slate-500">
-            Sales and royalty payouts are posted by the system, never by hand.
-          </p>
-          <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? "Recording…" : "Record"}
-          </Button>
-        </div>
-      </form>
-    </Card>
-  );
-}
-
-function BudgetCard({
+function BudgetsCard({
   budgets,
-  onAction,
+  onDelete,
 }: {
   budgets: Budget[];
-  onAction: (fn: () => Promise<unknown>, failure: string) => void;
+  onDelete: (id: string) => Promise<void>;
 }) {
-  const {
-    register,
-    handleSubmit,
-    reset,
-    formState: { errors, isSubmitting },
-  } = useForm<CreateBudgetInput>({
-    resolver: zodResolver(CreateBudgetSchema),
-    defaultValues: { name: "", category: "", periodStart: "", periodEnd: "", plannedAmount: 0 },
-  });
-
   return (
     <Card title="Budgets">
-      <form
-        onSubmit={handleSubmit(async (v) => {
-          await onAction(async () => {
-            await createBudget(v);
-            reset();
-          }, "Could not create budget");
-        })}
-        className="grid gap-3 sm:grid-cols-2"
-        aria-label="New budget form"
-      >
-        <div className="sm:col-span-2">
-          <Input label="Name" required error={errors.name?.message} {...register("name")} />
-        </div>
-        <Input label="Category" hint="Matches expense category" error={errors.category?.message} {...register("category")} />
-        <Input
-          label="Planned (GHS)"
-          type="number"
-          min={0}
-          step="0.01"
-          required
-          error={errors.plannedAmount?.message}
-          {...register("plannedAmount")}
-        />
-        <Input label="Period start" type="date" required error={errors.periodStart?.message} {...register("periodStart")} />
-        <Input label="Period end" type="date" required error={errors.periodEnd?.message} {...register("periodEnd")} />
-        <div className="sm:col-span-2">
-          <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? "Creating…" : "Create budget"}
-          </Button>
-        </div>
-      </form>
-      <ul className="mt-3 flex flex-col divide-y divide-slate-100">
+      <ul className="flex flex-col divide-y divide-slate-100 dark:divide-neutral-800">
         {budgets.length === 0 ? (
-          <li className="py-2 text-sm text-slate-400">No budgets yet</li>
+          <li className="py-2 text-sm text-slate-400 dark:text-neutral-500">No budgets yet</li>
         ) : (
           budgets.map((b) => (
             <li key={b.id} className="flex flex-wrap items-center gap-x-4 gap-y-1 py-2">
               <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-semibold text-slate-900">{b.name}</p>
-                <p className="text-xs tabular-nums text-slate-500">
+                <p className="truncate text-sm font-semibold text-slate-900 dark:text-neutral-100">{b.name}</p>
+                <p className="text-xs tabular-nums text-slate-500 dark:text-neutral-400">
                   Planned {formatGHS(b.plannedAmount)} · Actual {formatGHS(b.actualAmount)} ·
                   Variance{" "}
-                  <span className={b.variance >= 0 ? "text-emerald-700" : "text-rose-700"}>
+                  <span className={b.variance >= 0 ? "text-emerald-700 dark:text-emerald-400" : "text-rose-700 dark:text-rose-400"}>
                     {formatGHS(b.variance)}
                   </span>
                 </p>
@@ -341,10 +280,10 @@ function BudgetCard({
               <Button
                 size="sm"
                 variant="ghost"
-                className="text-red-700 hover:bg-red-50"
+                className="text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950"
                 onClick={() => {
                   if (window.confirm(`Delete budget "${b.name}"?`)) {
-                    void onAction(() => deleteBudget(b.id), "Delete failed");
+                    void onDelete(b.id);
                   }
                 }}
               >

@@ -45,9 +45,10 @@ export function Donut({
             cy={size / 2}
             r={(size - thickness) / 2}
             fill="none"
-            stroke="#e8e6df"
+            stroke="currentColor"
             strokeWidth={thickness}
             aria-hidden="true"
+            className="text-[#edf1f7] dark:text-neutral-800"
           />
           {segments.map((s) => {
             const pct = (s.value / total) * 100;
@@ -73,8 +74,8 @@ export function Donut({
           })}
         </svg>
         <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
-          <span className="text-2xl font-bold tabular-nums text-slate-900">{centerTop}</span>
-          <span className="text-xs text-slate-600">{centerBottom}</span>
+          <span className="text-2xl font-bold tabular-nums text-slate-900 dark:text-neutral-100">{centerTop}</span>
+          <span className="text-xs text-slate-600 dark:text-neutral-400">{centerBottom}</span>
         </div>
       </div>
       <ul className="flex min-w-0 flex-1 flex-col gap-1.5 text-sm">
@@ -85,8 +86,8 @@ export function Donut({
               className="h-2.5 w-2.5 shrink-0 rounded-full"
               style={{ backgroundColor: s.color }}
             />
-            <span className="min-w-0 flex-1 truncate text-slate-700">{s.label}</span>
-            <span className="font-semibold tabular-nums text-slate-900">{s.value}</span>
+            <span className="min-w-0 flex-1 truncate text-slate-700 dark:text-neutral-300">{s.label}</span>
+            <span className="font-semibold tabular-nums text-slate-900 dark:text-neutral-100">{s.value}</span>
           </li>
         ))}
       </ul>

@@ -1,23 +1,20 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
 import { ProtectedRoute } from "@/components/layout/ProtectedRoute";
 import { AppShell } from "@/components/layout/AppShell";
-import { TopBar } from "@/components/layout/TopBar";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card } from "@/components/ui/Card";
-import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
+import { Modal } from "@/components/ui/Modal";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Spinner } from "@/components/ui/Spinner";
 import { Pagination } from "@/components/ui/Pagination";
+import { ContractForm } from "@/features/royalties/ContractForm";
+import { StatementForm } from "@/features/royalties/StatementForm";
 import {
-  CreateContractSchema,
-  GenerateStatementSchema,
   approveStatement,
   createContract,
   deleteContract,
@@ -48,6 +45,10 @@ export default function RoyaltiesPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [contractOpen, setContractOpen] = useState(false);
+  const [statementOpen, setStatementOpen] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [formDirty, setFormDirty] = useState(false);
   const params = query.toParams();
 
   const refresh = useCallback(async () => {
@@ -91,33 +92,94 @@ export default function RoyaltiesPage() {
 
   return (
     <ProtectedRoute>
-      <TopBar />
       <AppShell>
         <div className="flex flex-col gap-4">
           <PageHeader
             title="Royalties"
             description="Author contracts and computed statements, approved and paid forward only."
+            actions={
+              <>
+                <Button variant="ghost" onClick={() => setStatementOpen(true)}>
+                  Generate statement
+                </Button>
+                <Button onClick={() => setContractOpen(true)}>
+                  New contract
+                </Button>
+              </>
+            }
           />
           {actionError ? (
-            <p role="alert" className="rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700">
+            <p role="alert" className="rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-300">
               {actionError}
             </p>
           ) : null}
+          <Modal
+            open={contractOpen}
+            title="New contract"
+            description="Agree a royalty rate with a contributor."
+            onClose={() => setContractOpen(false)}
+            isDirty={formDirty}
+          >
+            <ContractForm
+              key={contractOpen ? "contract-new" : "contract-closed"}
+              books={books}
+              contributors={contributors}
+              onSubmit={async (v: CreateContractInput) => {
+                setSubmitting(true);
+                try {
+                  await createContract(v);
+                  setContractOpen(false);
+                  setFormDirty(false);
+                  await refresh();
+                } catch (e: unknown) {
+                  setActionError(e instanceof Error ? `Could not create contract: ${e.message}` : "Could not create contract");
+                } finally {
+                  setSubmitting(false);
+                }
+              }}
+              submitting={submitting}
+              onCancel={() => setContractOpen(false)}
+              onDirtyChange={setFormDirty}
+            />
+          </Modal>
+          <Modal
+            open={statementOpen}
+            title="Generate statement"
+            description="Compute a royalty statement for a contract and period."
+            onClose={() => setStatementOpen(false)}
+            isDirty={formDirty}
+          >
+            <StatementForm
+              key={statementOpen ? "statement-new" : "statement-closed"}
+              contracts={contracts}
+              onSubmit={async (v: GenerateStatementInput) => {
+                setSubmitting(true);
+                try {
+                  await generateStatement(v);
+                  setStatementOpen(false);
+                  setFormDirty(false);
+                  await refresh();
+                } catch (e: unknown) {
+                  setActionError(e instanceof Error ? `Generation failed: ${e.message}` : "Generation failed");
+                } finally {
+                  setSubmitting(false);
+                }
+              }}
+              submitting={submitting}
+              onCancel={() => setStatementOpen(false)}
+              onDirtyChange={setFormDirty}
+            />
+          </Modal>
           {loading ? (
             <Spinner label="Loading royalties…" />
           ) : error ? (
             <EmptyState title="Could not load royalties" description={error} />
           ) : (
             <>
-              <div className="grid items-start gap-4 xl:grid-cols-2">
-                <ContractCard
-                  contracts={contracts}
-                  books={books}
-                  contributors={contributors}
-                  onAction={runAction}
-                />
-                <StatementGenerateCard contracts={contracts} onAction={runAction} />
-              </div>
+              <ContractsCard
+                contracts={contracts}
+                onAction={runAction}
+              />
               <Card
                 title="Statements"
                 action={
@@ -147,16 +209,16 @@ export default function RoyaltiesPage() {
                       {statements.items.map((s) => (
                         <li
                           key={s.id}
-                          className="flex flex-col gap-2 rounded-xl border border-slate-200/90 bg-white p-4 shadow-[0_1px_2px_rgb(15_23_42/0.05)]"
+                          className="flex flex-col gap-2 rounded-xl border border-slate-200/90 bg-white p-4 shadow-[0_1px_2px_rgb(15_23_42/0.05)] dark:border-neutral-800 dark:bg-neutral-900 dark:shadow-none"
                         >
                           <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
-                            <p className="text-sm font-semibold text-slate-900">
+                            <p className="text-sm font-semibold text-slate-900 dark:text-neutral-100">
                               {s.periodStart} → {s.periodEnd}
                             </p>
                             <Badge status={s.status} />
-                            <span className="ml-auto text-sm tabular-nums text-slate-600">
+                            <span className="ml-auto text-sm tabular-nums text-slate-600 dark:text-neutral-400">
                               Net {formatGHS(s.netSales)} × {(s.rateSnapshot * 100).toFixed(1)}% ={" "}
-                              <span className="text-base font-bold text-slate-900">
+                              <span className="text-base font-bold text-slate-900 dark:text-neutral-100">
                                 {formatGHS(s.payable)}
                               </span>
                             </span>
@@ -179,7 +241,7 @@ export default function RoyaltiesPage() {
                               </Button>
                             ) : null}
                             {s.status === "PAID" ? (
-                              <span className="text-xs text-slate-500">
+                              <span className="text-xs text-slate-500 dark:text-neutral-400">
                                 Paid{s.paidAt ? ` ${new Date(s.paidAt).toLocaleDateString("en-GH")}` : ""}
                               </span>
                             ) : null}
@@ -206,84 +268,26 @@ export default function RoyaltiesPage() {
   );
 }
 
-function ContractCard({
+function ContractsCard({
   contracts,
-  books,
-  contributors,
   onAction,
 }: {
   contracts: Contract[];
-  books: Book[];
-  contributors: Contributor[];
   onAction: (fn: () => Promise<unknown>, failure: string) => void;
 }) {
-  const {
-    register,
-    handleSubmit,
-    reset,
-    formState: { errors, isSubmitting },
-  } = useForm<CreateContractInput>({
-    resolver: zodResolver(CreateContractSchema),
-    defaultValues: { contributorId: "", bookId: "", royaltyRate: 0.1, startDate: "", endDate: "" },
-  });
-
   return (
     <Card title="Contracts">
-      <form
-        onSubmit={handleSubmit(async (v) => {
-          await onAction(async () => {
-            await createContract(v);
-            reset();
-          }, "Could not create contract");
-        })}
-        className="grid gap-3 sm:grid-cols-2"
-        aria-label="New contract form"
-      >
-        <Select
-          label="Contributor"
-          required
-          error={errors.contributorId?.message}
-          options={[
-            { value: "", label: "Choose a contributor" },
-            ...contributors.map((c) => ({ value: c.id, label: c.fullName })),
-          ]}
-          {...register("contributorId")}
-        />
-        <Select
-          label="Book (optional — empty means all the contributor's books)"
-          error={errors.bookId?.message}
-          options={[{ value: "", label: "All books" }, ...books.map((b) => ({ value: b.id, label: b.title }))]}
-          {...register("bookId")}
-        />
-        <Input
-          label="Royalty rate (0–1)"
-          type="number"
-          min={0}
-          max={1}
-          step="0.01"
-          required
-          hint="0.10 = 10%"
-          error={errors.royaltyRate?.message}
-          {...register("royaltyRate")}
-        />
-        <Input label="Start date" type="date" required error={errors.startDate?.message} {...register("startDate")} />
-        <div className="sm:col-span-2">
-          <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? "Creating…" : "Create contract"}
-          </Button>
-        </div>
-      </form>
-      <ul className="mt-3 flex flex-col divide-y divide-slate-100">
+      <ul className="flex flex-col divide-y divide-slate-100 dark:divide-neutral-800">
         {contracts.length === 0 ? (
-          <li className="py-2 text-sm text-slate-400">No contracts yet</li>
+          <li className="py-2 text-sm text-slate-400 dark:text-neutral-500">No contracts yet</li>
         ) : (
           contracts.map((c) => (
             <li key={c.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 py-2">
               <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-semibold text-slate-900">
+                <p className="truncate text-sm font-semibold text-slate-900 dark:text-neutral-100">
                   {c.contributorName ?? "Contributor"}
                 </p>
-                <p className="text-xs tabular-nums text-slate-500">
+                <p className="text-xs tabular-nums text-slate-500 dark:text-neutral-400">
                   {(c.royaltyRate * 100).toFixed(1)}% · since {c.startDate}
                 </p>
               </div>
@@ -300,7 +304,7 @@ function ContractCard({
                   <Button
                     size="sm"
                     variant="ghost"
-                    className="text-red-700 hover:bg-red-50"
+                    className="text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950"
                     onClick={() => {
                       if (window.confirm("Delete this contract?")) {
                         void onAction(() => deleteContract(c.id), "Delete failed");
@@ -315,67 +319,6 @@ function ContractCard({
           ))
         )}
       </ul>
-    </Card>
-  );
-}
-
-function StatementGenerateCard({
-  contracts,
-  onAction,
-}: {
-  contracts: Contract[];
-  onAction: (fn: () => Promise<unknown>, failure: string) => void;
-}) {
-  const {
-    register,
-    handleSubmit,
-    reset,
-    formState: { errors, isSubmitting },
-  } = useForm<GenerateStatementInput>({
-    resolver: zodResolver(GenerateStatementSchema),
-    defaultValues: { contractId: "", periodStart: "", periodEnd: "" },
-  });
-
-  return (
-    <Card title="Generate statement">
-      <form
-        onSubmit={handleSubmit(async (v) => {
-          await onAction(async () => {
-            await generateStatement(v);
-            reset();
-          }, "Generation failed");
-        })}
-        className="grid gap-3 sm:grid-cols-2"
-        aria-label="Generate statement form"
-      >
-        <div className="sm:col-span-2">
-          <Select
-            label="Contract"
-            required
-            error={errors.contractId?.message}
-            options={[
-              { value: "", label: "Choose a contract" },
-              ...contracts
-                .filter((c) => c.status === "ACTIVE")
-                .map((c) => ({
-                  value: c.id,
-                  label: `${c.contributorName ?? "Contributor"} · ${(c.royaltyRate * 100).toFixed(1)}%`,
-                })),
-            ]}
-            {...register("contractId")}
-          />
-        </div>
-        <Input label="Period start" type="date" required error={errors.periodStart?.message} {...register("periodStart")} />
-        <Input label="Period end" type="date" required error={errors.periodEnd?.message} {...register("periodEnd")} />
-        <div className="sm:col-span-2">
-          <p className="mb-2 text-xs text-slate-500">
-            Net = fulfilled sales minus refunds in the period; payable = net × rate. Snapshotted at generation.
-          </p>
-          <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? "Generating…" : "Generate"}
-          </Button>
-        </div>
-      </form>
     </Card>
   );
 }

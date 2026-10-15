@@ -1,4 +1,4 @@
-import { api } from "@/lib/api-client";
+import { api, ApiError } from "@/lib/api-client";
 import type { ApiEnvelope } from "@/types/api";
 import type { DashboardSummary } from "@/types/dashboard";
 
@@ -85,12 +85,20 @@ const SAMPLE: DashboardSummary = {
   stale: true,
 };
 
-/** Fetch the dashboard summary; falls back to labelled sample data when the API is down. */
+/**
+ * Fetch the dashboard summary.
+ *
+ * Authentication failures (401/403) are rethrown so the caller can redirect
+ * to login — masking them as sample data would strand expired sessions on a
+ * fake dashboard. Other failures (backend down, 500s) fall back to labelled
+ * sample data so the page still renders with the "stale" badge.
+ */
 export async function getSummary(): Promise<DashboardSummary> {
   try {
     const res = await api.get<ApiEnvelope<DashboardSummary>>("/dashboard/summary");
     return { ...res.data, stale: false };
-  } catch {
+  } catch (e) {
+    if (e instanceof ApiError && (e.status === 401 || e.status === 403)) throw e;
     return SAMPLE;
   }
 }

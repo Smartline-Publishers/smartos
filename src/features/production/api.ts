@@ -77,12 +77,12 @@ export async function createRun(jobId: string, quantity: number): Promise<PrintR
 
 export async function postRun(runId: string, warehouseId: string): Promise<PrintRun> {
   const res = await api.post<ApiEnvelope<PrintRun>>(
-    `/production/runs/${encodeURIComponent(runId)}/post`,
+    `/production/jobs/runs/${encodeURIComponent(runId)}/post`,
     { warehouseId },
   );
   return res.data;
 }
 
 export async function deleteRun(runId: string): Promise<void> {
-  await api.del<void>(`/production/runs/${encodeURIComponent(runId)}`);
+  await api.del<void>(`/production/jobs/runs/${encodeURIComponent(runId)}`);
 }

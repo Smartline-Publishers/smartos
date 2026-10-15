@@ -1,22 +1,19 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
 import { ProtectedRoute } from "@/components/layout/ProtectedRoute";
 import { AppShell } from "@/components/layout/AppShell";
-import { TopBar } from "@/components/layout/TopBar";
 import { PageHeader } from "@/components/ui/PageHeader";
-import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
+import { Modal } from "@/components/ui/Modal";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Spinner } from "@/components/ui/Spinner";
 import { Pagination } from "@/components/ui/Pagination";
+import { TaskForm } from "@/features/tasks/TaskForm";
 import {
-  CreateTaskSchema,
   createTask,
   deleteTask,
   listTasks,
@@ -35,6 +32,9 @@ export default function TasksPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [formDirty, setFormDirty] = useState(false);
   const params = query.toParams();
 
   const refresh = useCallback(async () => {
@@ -67,73 +67,56 @@ export default function TasksPage() {
     [refresh],
   );
 
-  const {
-    register,
-    handleSubmit,
-    reset,
-    formState: { errors, isSubmitting },
-  } = useForm<CreateTaskInput>({
-    resolver: zodResolver(CreateTaskSchema),
-    defaultValues: { title: "", description: "", priority: "MEDIUM", dueDate: "" },
-  });
-
   const onCreate = async (values: CreateTaskInput) => {
-    await runAction(async () => {
+    setCreating(true);
+    try {
       await createTask(values);
-      reset();
-      query.setPage(1);
-    }, "Could not create task");
+      setCreateOpen(false);
+      setFormDirty(false);
+      // Refetch through the paging effect when possible to avoid a double
+      // request; reload directly only if already on page 1.
+      if (params.page === 1) await refresh();
+      else query.setPage(1);
+    } catch (e: unknown) {
+      setActionError(e instanceof Error ? `Could not create task: ${e.message}` : "Could not create task");
+    } finally {
+      setCreating(false);
+    }
   };
 
   return (
     <ProtectedRoute>
-      <TopBar />
       <AppShell>
         <div className="flex flex-col gap-4">
           <PageHeader
             title="Tasks"
             description="Editorial and operational assignments with owners and due dates."
+            actions={
+              <Button onClick={() => setCreateOpen(true)}>
+                New task
+              </Button>
+            }
           />
           {actionError ? (
-            <p role="alert" className="rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700">
+            <p role="alert" className="rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-300">
               {actionError}
             </p>
           ) : null}
-          <Card title="New task">
-            <form
-              onSubmit={handleSubmit(onCreate)}
-              className="grid gap-3 sm:grid-cols-[1fr_160px_180px_auto]"
-              aria-label="New task form"
-            >
-              <Input
-                label="Title"
-                required
-                error={errors.title?.message}
-                {...register("title")}
-              />
-              <Select
-                label="Priority"
-                error={errors.priority?.message}
-                options={[
-                  { value: "LOW", label: "Low" },
-                  { value: "MEDIUM", label: "Medium" },
-                  { value: "HIGH", label: "High" },
-                ]}
-                {...register("priority")}
-              />
-              <Input
-                label="Due date"
-                type="date"
-                error={errors.dueDate?.message}
-                {...register("dueDate")}
-              />
-              <div className="flex items-end">
-                <Button type="submit" disabled={isSubmitting}>
-                  {isSubmitting ? "Adding…" : "Add task"}
-                </Button>
-              </div>
-            </form>
-          </Card>
+          <Modal
+            open={createOpen}
+            title="New task"
+            description="Create an assignment with an owner and due date."
+            onClose={() => setCreateOpen(false)}
+            isDirty={formDirty}
+          >
+            <TaskForm
+              key={createOpen ? "task-new" : "task-closed"}
+              onSubmit={onCreate}
+              submitting={creating}
+              onCancel={() => setCreateOpen(false)}
+              onDirtyChange={setFormDirty}
+            />
+          </Modal>
 
           <div className="flex flex-col gap-3 sm:flex-row">
             <div className="flex-1">
@@ -171,8 +154,8 @@ export default function TasksPage() {
             <EmptyState title="No tasks found" description="Try a different search or status filter." />
           ) : (
             <>
-              <p className="text-[13px] text-slate-600" aria-live="polite">
-                <span className="font-semibold tabular-nums text-slate-900">{data.total}</span>{" "}
+              <p className="text-[13px] text-slate-600 dark:text-neutral-400" aria-live="polite">
+                <span className="font-semibold tabular-nums text-slate-900 dark:text-neutral-100">{data.total}</span>{" "}
                 {data.total === 1 ? "task" : "tasks"}
               </p>
               <ul className="flex flex-col gap-2">
@@ -181,17 +164,17 @@ export default function TasksPage() {
                   return (
                     <li
                       key={t.id}
-                      className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-xl border border-slate-200/90 bg-white px-4 py-3 shadow-[0_1px_2px_rgb(15_23_42/0.05)]"
+                      className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-xl border border-slate-200/90 bg-white px-4 py-3 shadow-[0_1px_2px_rgb(15_23_42/0.05)] dark:border-neutral-800 dark:bg-neutral-900 dark:shadow-none"
                     >
                       <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-semibold text-slate-900">{t.title}</p>
-                        <p className="mt-0.5 text-xs text-slate-500">
+                        <p className="truncate text-sm font-semibold text-slate-900 dark:text-neutral-100">{t.title}</p>
+                        <p className="mt-0.5 text-xs text-slate-500 dark:text-neutral-400">
                           {t.dueDate ? `Due ${formatDate(t.dueDate)}` : "No due date"}
                         </p>
                       </div>
                       <Badge status={t.priority} />
                       <Badge status={t.status} />
-                      <span className="text-xs text-slate-500">{statusLabel(t.status)}</span>
+                      <span className="text-xs text-slate-500 dark:text-neutral-400">{statusLabel(t.status)}</span>
                       {next ? (
                         <Button
                           size="sm"
@@ -207,7 +190,7 @@ export default function TasksPage() {
                       <Button
                         size="sm"
                         variant="ghost"
-                        className="text-red-700 hover:bg-red-50"
+                        className="text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950"
                         onClick={() => {
                           if (window.confirm(`Delete task "${t.title}"?`)) {
                             void runAction(() => deleteTask(t.id), "Delete failed");

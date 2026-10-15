@@ -15,13 +15,17 @@ export interface TableProps<T> {
 
 export function Table<T>({ columns, rows, getRowKey, caption }: TableProps<T>) {
   return (
-    <div className="overflow-x-auto rounded-md border border-slate-200">
-      <table className="w-full border-collapse text-left text-sm">
+    <div className="shell-scroll overflow-x-auto rounded-xl border border-line bg-white dark:border-neutral-800 dark:bg-neutral-900">
+      <table className="w-full border-collapse text-left">
         {caption ? <caption className="sr-only">{caption}</caption> : null}
-        <thead className="bg-slate-50">
+        <thead className="bg-[#fafbfd] dark:bg-neutral-800/60">
           <tr>
             {columns.map((c) => (
-              <th key={c.key} scope="col" className="px-3 py-2 font-semibold text-slate-700">
+              <th
+                key={c.key}
+                scope="col"
+                className="px-[14px] py-3 text-[11px] font-semibold uppercase tracking-[0.5px] text-muted dark:text-neutral-400"
+              >
                 {c.header}
               </th>
             ))}
@@ -29,9 +33,9 @@ export function Table<T>({ columns, rows, getRowKey, caption }: TableProps<T>) {
         </thead>
         <tbody>
           {rows.map((row, i) => (
-            <tr key={getRowKey(row, i)} className="border-t border-slate-200">
+            <tr key={getRowKey(row, i)} className="border-t border-[#edf1f6] dark:border-neutral-800">
               {columns.map((c) => (
-                <td key={c.key} className="px-3 py-2 text-slate-900">
+                <td key={c.key} className="px-[14px] py-3 align-middle text-xs text-ink dark:text-neutral-200">
                   {c.render(row)}
                 </td>
               ))}

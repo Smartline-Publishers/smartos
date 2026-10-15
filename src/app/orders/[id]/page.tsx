@@ -3,7 +3,6 @@
 import { use, useCallback, useEffect, useState } from "react";
 import { ProtectedRoute } from "@/components/layout/ProtectedRoute";
 import { AppShell } from "@/components/layout/AppShell";
-import { TopBar } from "@/components/layout/TopBar";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -68,7 +67,6 @@ export default function OrderDetailPage({
 
   return (
     <ProtectedRoute>
-      <TopBar />
       <AppShell>
         {loading ? (
           <Spinner label="Loading order…" />
@@ -77,16 +75,16 @@ export default function OrderDetailPage({
         ) : (
           <div className="flex flex-col gap-4">
             <div className="flex flex-wrap items-center gap-3">
-              <h1 className="text-xl font-bold tracking-tight text-slate-900">
+              <h1 className="text-xl font-bold tracking-tight text-slate-900 dark:text-neutral-100">
                 Order for {order.customerName ?? "customer"}
               </h1>
               <Badge status={order.status} />
-              <span className="text-xl font-bold tabular-nums text-slate-900">
+              <span className="text-xl font-bold tabular-nums text-slate-900 dark:text-neutral-100">
                 {formatGHS(order.total)}
               </span>
             </div>
             {actionError ? (
-              <p role="alert" className="rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700">
+              <p role="alert" className="rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-300">
                 {actionError}
               </p>
             ) : null}
@@ -94,26 +92,26 @@ export default function OrderDetailPage({
               {order.items.length === 0 ? (
                 <EmptyState title="No items" description="This order has no lines." />
               ) : (
-                <div className="overflow-x-auto">
+                <div className="shell-scroll overflow-x-auto">
                   <table className="w-full border-collapse text-left text-sm">
                     <caption className="sr-only">Order lines</caption>
-                    <thead className="bg-slate-50">
+                    <thead className="bg-slate-50 dark:bg-neutral-800/60">
                       <tr>
-                        <th scope="col" className="px-3 py-2 font-semibold text-slate-700">Book</th>
-                        <th scope="col" className="px-3 py-2 text-right font-semibold text-slate-700">Qty</th>
-                        <th scope="col" className="px-3 py-2 text-right font-semibold text-slate-700">Unit price</th>
-                        <th scope="col" className="px-3 py-2 text-right font-semibold text-slate-700">Line total</th>
+                        <th scope="col" className="px-3 py-2 font-semibold text-slate-700 dark:text-neutral-300">Book</th>
+                        <th scope="col" className="px-3 py-2 text-right font-semibold text-slate-700 dark:text-neutral-300">Qty</th>
+                        <th scope="col" className="px-3 py-2 text-right font-semibold text-slate-700 dark:text-neutral-300">Unit price</th>
+                        <th scope="col" className="px-3 py-2 text-right font-semibold text-slate-700 dark:text-neutral-300">Line total</th>
                       </tr>
                     </thead>
                     <tbody>
                       {order.items.map((item) => (
-                        <tr key={item.id} className="border-t border-slate-200">
-                          <td className="px-3 py-2 text-slate-900">{item.bookTitle ?? item.bookId}</td>
-                          <td className="px-3 py-2 text-right tabular-nums text-slate-900">{item.quantity}</td>
-                          <td className="px-3 py-2 text-right tabular-nums text-slate-700">
+                        <tr key={item.id} className="border-t border-slate-200 dark:border-neutral-800">
+                          <td className="px-3 py-2 text-slate-900 dark:text-neutral-100">{item.bookTitle ?? item.bookId}</td>
+                          <td className="px-3 py-2 text-right tabular-nums text-slate-900 dark:text-neutral-100">{item.quantity}</td>
+                          <td className="px-3 py-2 text-right tabular-nums text-slate-700 dark:text-neutral-300">
                             {formatGHS(item.unitPrice)}
                           </td>
-                          <td className="px-3 py-2 text-right font-semibold tabular-nums text-slate-900">
+                          <td className="px-3 py-2 text-right font-semibold tabular-nums text-slate-900 dark:text-neutral-100">
                             {formatGHS(item.lineTotal)}
                           </td>
                         </tr>
@@ -125,7 +123,7 @@ export default function OrderDetailPage({
             </Card>
             <Card title="Actions">
               <div className="flex flex-wrap items-end gap-3">
-                <p className="w-full text-sm text-slate-600">
+                <p className="w-full text-sm text-slate-600 dark:text-neutral-400">
                   Status: <span className="font-semibold">{orderStatusLabel(order.status)}</span>
                 </p>
                 {order.status === "DRAFT" ? (
@@ -158,7 +156,7 @@ export default function OrderDetailPage({
                 {(order.status === "DRAFT" || order.status === "CONFIRMED") && (
                   <Button
                     variant="ghost"
-                    className="text-red-700 hover:bg-red-50"
+                    className="text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950"
                     disabled={busy}
                     onClick={() => {
                       if (window.confirm("Cancel this order?")) {

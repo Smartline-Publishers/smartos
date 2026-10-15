@@ -8,13 +8,13 @@ export interface PageHeaderProps {
   className?: string;
 }
 
-/** Consistent page heading: title, supporting line, optional action slot. */
+/** Page heading: title, supporting line, optional action slot on the right. */
 export function PageHeader({ title, description, actions, className }: PageHeaderProps) {
   return (
-    <div className={cn("flex flex-wrap items-end justify-between gap-3", className)}>
+    <div className={cn("mb-5 flex flex-wrap items-start justify-between gap-[14px]", className)}>
       <div className="min-w-0">
-        <h1 className="text-xl font-bold tracking-tight text-slate-900">{title}</h1>
-        {description ? <p className="mt-1 text-sm text-slate-600">{description}</p> : null}
+        <h1 className="text-[25px] font-bold tracking-[-0.6px] text-ink dark:text-neutral-100">{title}</h1>
+        {description ? <p className="mt-[5px] text-sm text-muted dark:text-neutral-400">{description}</p> : null}
       </div>
       {actions ? <div className="flex items-center gap-2">{actions}</div> : null}
     </div>

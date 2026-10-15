@@ -1,24 +1,21 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
 import { ProtectedRoute } from "@/components/layout/ProtectedRoute";
 import { AppShell } from "@/components/layout/AppShell";
-import { TopBar } from "@/components/layout/TopBar";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card } from "@/components/ui/Card";
-import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
+import { Modal } from "@/components/ui/Modal";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Spinner } from "@/components/ui/Spinner";
 import { Pagination } from "@/components/ui/Pagination";
+import { WarehouseForm } from "@/features/inventory/WarehouseForm";
+import { MovementForm } from "@/features/inventory/MovementForm";
+import { TransferForm } from "@/features/inventory/TransferForm";
 import {
-  CreateMovementSchema,
-  CreateWarehouseSchema,
-  TransferSchema,
   createWarehouse,
   deleteWarehouse,
   listLevels,
@@ -45,6 +42,11 @@ export default function InventoryPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [warehouseOpen, setWarehouseOpen] = useState(false);
+  const [movementOpen, setMovementOpen] = useState(false);
+  const [transferOpen, setTransferOpen] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [formDirty, setFormDirty] = useState(false);
 
   const movementQuery = usePagedQuery({ pageSize: 10 });
   const [movements, setMovements] = useState<Page<StockMovement> | null>(null);
@@ -96,22 +98,8 @@ export default function InventoryPage() {
   }, [refreshAll]);
 
   useEffect(() => {
-    void refreshMovements();
-  }, [refreshMovements]);
-
-  const runAction = useCallback(
-    async (fn: () => Promise<unknown>, failure: string) => {
-      setActionError(null);
-      try {
-        await fn();
-        await refreshAll();
-        await refreshMovements();
-      } catch (e: unknown) {
-        setActionError(e instanceof Error ? `${failure}: ${e.message}` : failure);
-      }
-    },
-    [refreshAll, refreshMovements],
-  );
+    void refreshAll();
+  }, [refreshAll]);
 
   const bookName = (id: string | null) =>
     books.find((b) => b.id === id)?.title ?? (id ? id.slice(0, 8) : "—");
@@ -120,18 +108,118 @@ export default function InventoryPage() {
 
   return (
     <ProtectedRoute>
-      <TopBar />
       <AppShell>
         <div className="flex flex-col gap-4">
           <PageHeader
             title="Inventory"
             description="Finished-book stock across warehouses, derived from an immutable movement ledger."
+            actions={
+              <>
+                <Button variant="ghost" onClick={() => setTransferOpen(true)}>
+                  Transfer stock
+                </Button>
+                <Button variant="ghost" onClick={() => setMovementOpen(true)}>
+                  Record movement
+                </Button>
+                <Button onClick={() => setWarehouseOpen(true)}>
+                  New warehouse
+                </Button>
+              </>
+            }
           />
           {actionError ? (
-            <p role="alert" className="rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700">
+            <p role="alert" className="rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-300">
               {actionError}
             </p>
           ) : null}
+          <Modal
+            open={warehouseOpen}
+            title="New warehouse"
+            description="Add a storage location."
+            onClose={() => setWarehouseOpen(false)}
+            isDirty={formDirty}
+          >
+            <WarehouseForm
+              key={warehouseOpen ? "warehouse-new" : "warehouse-closed"}
+              onSubmit={async (v: CreateWarehouseInput) => {
+                setSubmitting(true);
+                try {
+                  await createWarehouse(v);
+                  setWarehouseOpen(false);
+                  setFormDirty(false);
+                  await refreshAll();
+                  await refreshMovements();
+                } catch (e: unknown) {
+                  setActionError(e instanceof Error ? `Could not create warehouse: ${e.message}` : "Could not create warehouse");
+                } finally {
+                  setSubmitting(false);
+                }
+              }}
+              submitting={submitting}
+              onCancel={() => setWarehouseOpen(false)}
+              onDirtyChange={setFormDirty}
+            />
+          </Modal>
+          <Modal
+            open={movementOpen}
+            title="Record movement"
+            description="Record a receipt, dispatch, or adjustment."
+            onClose={() => setMovementOpen(false)}
+            isDirty={formDirty}
+          >
+            <MovementForm
+              key={movementOpen ? "movement-new" : "movement-closed"}
+              books={books}
+              warehouses={warehouses}
+              onSubmit={async (v: CreateMovementInput) => {
+                setSubmitting(true);
+                try {
+                  await recordMovement(v);
+                  setMovementOpen(false);
+                  setFormDirty(false);
+                  await refreshAll();
+                  await refreshMovements();
+                } catch (e: unknown) {
+                  setActionError(e instanceof Error ? `Could not record movement: ${e.message}` : "Could not record movement");
+                } finally {
+                  setSubmitting(false);
+                }
+              }}
+              submitting={submitting}
+              onCancel={() => setMovementOpen(false)}
+              onDirtyChange={setFormDirty}
+            />
+          </Modal>
+          <Modal
+            open={transferOpen}
+            title="Transfer stock"
+            description="Move copies between warehouses."
+            onClose={() => setTransferOpen(false)}
+            isDirty={formDirty}
+          >
+            <TransferForm
+              key={transferOpen ? "transfer-new" : "transfer-closed"}
+              books={books}
+              warehouses={warehouses}
+              onSubmit={async (v: TransferInput) => {
+                setSubmitting(true);
+                try {
+                  await transferStock(v);
+                  setTransferOpen(false);
+                  setFormDirty(false);
+                  await refreshAll();
+                  await refreshMovements();
+                } catch (e: unknown) {
+                  setActionError(e instanceof Error ? `Transfer failed: ${e.message}` : "Transfer failed");
+                } finally {
+                  setSubmitting(false);
+                }
+              }}
+              submitting={submitting}
+              onCancel={() => setTransferOpen(false)}
+              onDirtyChange={setFormDirty}
+            />
+          </Modal>
           {loading ? (
             <Spinner label="Loading inventory…" />
           ) : error ? (
@@ -139,16 +227,25 @@ export default function InventoryPage() {
           ) : (
             <>
               <div className="grid items-start gap-4 xl:grid-cols-3">
-                <WarehouseCard
+                <WarehousesCard
                   warehouses={warehouses}
-                  onAction={runAction}
+                  onDelete={async (id: string) => {
+                    setActionError(null);
+                    try {
+                      await deleteWarehouse(id);
+                      await refreshAll();
+                      await refreshMovements();
+                    } catch (e: unknown) {
+                      setActionError(e instanceof Error ? `Delete failed: ${e.message}` : "Delete failed");
+                    }
+                  }}
                 />
                 <Card
                   title="Stock levels"
                   className="xl:col-span-2"
                   action={
                     <div className="flex items-center gap-2">
-                      <label htmlFor="low-threshold" className="text-xs text-slate-500">
+                      <label htmlFor="low-threshold" className="text-xs text-slate-500 dark:text-neutral-400">
                         Low below
                       </label>
                       <input
@@ -159,7 +256,7 @@ export default function InventoryPage() {
                         onChange={(e) => setThreshold(e.target.value)}
                         onBlur={() => void refreshLevels().catch(() => undefined)}
                         placeholder="—"
-                        className="h-8 w-20 rounded-md border border-slate-300 bg-white px-2 text-sm"
+                        className="h-8 w-20 rounded-md border border-slate-300 bg-white px-2 text-sm text-ink dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-100"
                       />
                     </div>
                   }
@@ -170,15 +267,15 @@ export default function InventoryPage() {
                       description="Post a print run or record a receipt to create stock."
                     />
                   ) : (
-                    <div className="overflow-x-auto">
+                    <div className="shell-scroll overflow-x-auto">
                       <table className="w-full border-collapse text-left text-sm">
                         <caption className="sr-only">Stock levels by book and warehouse</caption>
-                        <thead className="bg-slate-50">
+                        <thead className="bg-slate-50 dark:bg-neutral-800/60">
                           <tr>
-                            <th scope="col" className="px-3 py-2 font-semibold text-slate-700">Book</th>
-                            <th scope="col" className="px-3 py-2 font-semibold text-slate-700">Warehouse</th>
-                            <th scope="col" className="px-3 py-2 text-right font-semibold text-slate-700">Qty</th>
-                            <th scope="col" className="px-3 py-2 font-semibold text-slate-700">Status</th>
+                            <th scope="col" className="px-3 py-2 font-semibold text-slate-700 dark:text-neutral-300">Book</th>
+                            <th scope="col" className="px-3 py-2 font-semibold text-slate-700 dark:text-neutral-300">Warehouse</th>
+                            <th scope="col" className="px-3 py-2 text-right font-semibold text-slate-700 dark:text-neutral-300">Qty</th>
+                            <th scope="col" className="px-3 py-2 font-semibold text-slate-700 dark:text-neutral-300">Status</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -186,10 +283,10 @@ export default function InventoryPage() {
                             const low =
                               threshold.trim() !== "" && l.quantity < Number(threshold);
                             return (
-                              <tr key={`${l.bookId}-${l.warehouseId}`} className="border-t border-slate-200">
-                                <td className="px-3 py-2 text-slate-900">{l.bookTitle}</td>
-                                <td className="px-3 py-2 text-slate-700">{l.warehouseName}</td>
-                                <td className="px-3 py-2 text-right font-semibold tabular-nums text-slate-900">
+                              <tr key={`${l.bookId}-${l.warehouseId}`} className="border-t border-slate-200 dark:border-neutral-800">
+                                <td className="px-3 py-2 text-slate-900 dark:text-neutral-100">{l.bookTitle}</td>
+                                <td className="px-3 py-2 text-slate-700 dark:text-neutral-300">{l.warehouseName}</td>
+                                <td className="px-3 py-2 text-right font-semibold tabular-nums text-slate-900 dark:text-neutral-100">
                                   {l.quantity.toLocaleString()}
                                 </td>
                                 <td className="px-3 py-2">
@@ -199,7 +296,7 @@ export default function InventoryPage() {
                                       <span className="sr-only">Low stock</span>
                                     </>
                                   ) : (
-                                    <span className="text-xs text-slate-500">OK</span>
+                                    <span className="text-xs text-slate-500 dark:text-neutral-400">OK</span>
                                   )}
                                 </td>
                               </tr>
@@ -210,11 +307,6 @@ export default function InventoryPage() {
                     </div>
                   )}
                 </Card>
-              </div>
-
-              <div className="grid items-start gap-4 xl:grid-cols-2">
-                <MovementFormCard books={books} warehouses={warehouses} onAction={runAction} />
-                <TransferFormCard books={books} warehouses={warehouses} onAction={runAction} />
               </div>
 
               <Card title="Movement history">
@@ -252,36 +344,36 @@ export default function InventoryPage() {
                   <EmptyState title="No movements" description="Recorded receipts, dispatches and transfers appear here." />
                 ) : (
                   <>
-                    <div className="overflow-x-auto rounded-md border border-slate-200">
+                    <div className="shell-scroll overflow-x-auto rounded-md border border-slate-200 dark:border-neutral-800">
                       <table className="w-full border-collapse text-left text-sm">
                         <caption className="sr-only">Stock movements</caption>
-                        <thead className="bg-slate-50">
+                        <thead className="bg-slate-50 dark:bg-neutral-800/60">
                           <tr>
-                            <th scope="col" className="px-3 py-2 font-semibold text-slate-700">Book</th>
-                            <th scope="col" className="px-3 py-2 font-semibold text-slate-700">Warehouse</th>
-                            <th scope="col" className="px-3 py-2 text-right font-semibold text-slate-700">Qty</th>
-                            <th scope="col" className="px-3 py-2 font-semibold text-slate-700">Type</th>
-                            <th scope="col" className="px-3 py-2 font-semibold text-slate-700">Reference</th>
-                            <th scope="col" className="px-3 py-2 font-semibold text-slate-700">Date</th>
+                            <th scope="col" className="px-3 py-2 font-semibold text-slate-700 dark:text-neutral-300">Book</th>
+                            <th scope="col" className="px-3 py-2 font-semibold text-slate-700 dark:text-neutral-300">Warehouse</th>
+                            <th scope="col" className="px-3 py-2 text-right font-semibold text-slate-700 dark:text-neutral-300">Qty</th>
+                            <th scope="col" className="px-3 py-2 font-semibold text-slate-700 dark:text-neutral-300">Type</th>
+                            <th scope="col" className="px-3 py-2 font-semibold text-slate-700 dark:text-neutral-300">Reference</th>
+                            <th scope="col" className="px-3 py-2 font-semibold text-slate-700 dark:text-neutral-300">Date</th>
                           </tr>
                         </thead>
                         <tbody>
                           {movements.items.map((m) => (
-                            <tr key={m.id} className="border-t border-slate-200">
-                              <td className="px-3 py-2 text-slate-900">{bookName(m.bookId)}</td>
-                              <td className="px-3 py-2 text-slate-700">{warehouseName(m.warehouseId)}</td>
+                            <tr key={m.id} className="border-t border-slate-200 dark:border-neutral-800">
+                              <td className="px-3 py-2 text-slate-900 dark:text-neutral-100">{bookName(m.bookId)}</td>
+                              <td className="px-3 py-2 text-slate-700 dark:text-neutral-300">{warehouseName(m.warehouseId)}</td>
                               <td
-                                className={`px-3 py-2 text-right font-semibold tabular-nums ${m.qtyDelta >= 0 ? "text-emerald-700" : "text-rose-700"}`}
+                                className={`px-3 py-2 text-right font-semibold tabular-nums ${m.qtyDelta >= 0 ? "text-emerald-700 dark:text-emerald-400" : "text-rose-700 dark:text-rose-400"}`}
                               >
                                 {m.qtyDelta >= 0 ? `+${m.qtyDelta}` : m.qtyDelta}
                               </td>
                               <td className="px-3 py-2">
                                 <Badge status={m.type} />
                               </td>
-                              <td className="px-3 py-2 text-xs text-slate-500">
+                              <td className="px-3 py-2 text-xs text-slate-500 dark:text-neutral-400">
                                 {m.referenceType ?? "—"}
                               </td>
-                              <td className="px-3 py-2 text-xs text-slate-500">
+                              <td className="px-3 py-2 text-xs text-slate-500 dark:text-neutral-400">
                                 {m.createdAt ? formatDate(m.createdAt) : "—"}
                               </td>
                             </tr>
@@ -308,58 +400,32 @@ export default function InventoryPage() {
   );
 }
 
-function WarehouseCard({
+function WarehousesCard({
   warehouses,
-  onAction,
+  onDelete,
 }: {
   warehouses: Warehouse[];
-  onAction: (fn: () => Promise<unknown>, failure: string) => void;
+  onDelete: (id: string) => Promise<void>;
 }) {
-  const {
-    register,
-    handleSubmit,
-    reset,
-    formState: { errors, isSubmitting },
-  } = useForm<CreateWarehouseInput>({
-    resolver: zodResolver(CreateWarehouseSchema),
-    defaultValues: { name: "", location: "" },
-  });
-
   return (
     <Card title="Warehouses">
-      <form
-        onSubmit={handleSubmit(async (v) => {
-          await onAction(async () => {
-            await createWarehouse(v);
-            reset();
-          }, "Could not create warehouse");
-        })}
-        className="flex flex-col gap-2"
-        aria-label="New warehouse form"
-      >
-        <Input label="Name" required error={errors.name?.message} {...register("name")} />
-        <Input label="Location" hint="Optional" error={errors.location?.message} {...register("location")} />
-        <Button type="submit" disabled={isSubmitting}>
-          {isSubmitting ? "Adding…" : "Add warehouse"}
-        </Button>
-      </form>
-      <ul className="mt-3 flex flex-col divide-y divide-slate-100">
+      <ul className="flex flex-col divide-y divide-slate-100 dark:divide-neutral-800">
         {warehouses.length === 0 ? (
-          <li className="py-2 text-sm text-slate-400">No warehouses yet</li>
+          <li className="py-2 text-sm text-slate-400 dark:text-neutral-500">No warehouses yet</li>
         ) : (
           warehouses.map((w) => (
             <li key={w.id} className="flex items-center justify-between gap-2 py-2">
               <div className="min-w-0">
-                <p className="truncate text-sm font-semibold text-slate-900">{w.name}</p>
-                {w.location ? <p className="text-xs text-slate-500">{w.location}</p> : null}
+                <p className="truncate text-sm font-semibold text-slate-900 dark:text-neutral-100">{w.name}</p>
+                {w.location ? <p className="text-xs text-slate-500 dark:text-neutral-400">{w.location}</p> : null}
               </div>
               <Button
                 size="sm"
                 variant="ghost"
-                className="text-red-700 hover:bg-red-50"
+                className="text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950"
                 onClick={() => {
                   if (window.confirm(`Delete warehouse "${w.name}"?`)) {
-                    void onAction(() => deleteWarehouse(w.id), "Delete failed");
+                    void onDelete(w.id);
                   }
                 }}
               >
@@ -369,155 +435,6 @@ function WarehouseCard({
           ))
         )}
       </ul>
-    </Card>
-  );
-}
-
-function MovementFormCard({
-  books,
-  warehouses,
-  onAction,
-}: {
-  books: Book[];
-  warehouses: Warehouse[];
-  onAction: (fn: () => Promise<unknown>, failure: string) => void;
-}) {
-  const {
-    register,
-    handleSubmit,
-    reset,
-    formState: { errors, isSubmitting },
-  } = useForm<CreateMovementInput>({
-    resolver: zodResolver(CreateMovementSchema),
-    defaultValues: { bookId: "", warehouseId: "", qtyDelta: 0, type: "IN", reason: "" },
-  });
-
-  return (
-    <Card title="Record movement">
-      <form
-        onSubmit={handleSubmit(async (v) => {
-          await onAction(async () => {
-            await recordMovement(v);
-            reset();
-          }, "Could not record movement");
-        })}
-        className="grid gap-3 sm:grid-cols-2"
-        aria-label="Record stock movement form"
-      >
-        <Select
-          label="Book"
-          required
-          error={errors.bookId?.message}
-          options={[{ value: "", label: "Choose a book" }, ...books.map((b) => ({ value: b.id, label: b.title }))]}
-          {...register("bookId")}
-        />
-        <Select
-          label="Warehouse"
-          required
-          error={errors.warehouseId?.message}
-          options={[{ value: "", label: "Choose a warehouse" }, ...warehouses.map((w) => ({ value: w.id, label: w.name }))]}
-          {...register("warehouseId")}
-        />
-        <Select
-          label="Type"
-          error={errors.type?.message}
-          options={[
-            { value: "IN", label: "Receipt (IN)" },
-            { value: "OUT", label: "Dispatch (OUT)" },
-            { value: "ADJUSTMENT", label: "Adjustment" },
-          ]}
-          {...register("type")}
-        />
-        <Input
-          label="Quantity (signed)"
-          hint="IN positive, OUT negative"
-          type="number"
-          required
-          error={errors.qtyDelta?.message}
-          {...register("qtyDelta")}
-        />
-        <div className="sm:col-span-2">
-          <Input label="Reason" hint="Optional" error={errors.reason?.message} {...register("reason")} />
-        </div>
-        <div className="sm:col-span-2">
-          <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? "Recording…" : "Record movement"}
-          </Button>
-        </div>
-      </form>
-    </Card>
-  );
-}
-
-function TransferFormCard({
-  books,
-  warehouses,
-  onAction,
-}: {
-  books: Book[];
-  warehouses: Warehouse[];
-  onAction: (fn: () => Promise<unknown>, failure: string) => void;
-}) {
-  const {
-    register,
-    handleSubmit,
-    reset,
-    formState: { errors, isSubmitting },
-  } = useForm<TransferInput>({
-    resolver: zodResolver(TransferSchema),
-    defaultValues: { bookId: "", fromWarehouseId: "", toWarehouseId: "", quantity: 1, reason: "" },
-  });
-
-  return (
-    <Card title="Transfer between warehouses">
-      <form
-        onSubmit={handleSubmit(async (v) => {
-          await onAction(async () => {
-            await transferStock(v);
-            reset();
-          }, "Transfer failed");
-        })}
-        className="grid gap-3 sm:grid-cols-2"
-        aria-label="Transfer stock form"
-      >
-        <div className="sm:col-span-2">
-          <Select
-            label="Book"
-            required
-            error={errors.bookId?.message}
-            options={[{ value: "", label: "Choose a book" }, ...books.map((b) => ({ value: b.id, label: b.title }))]}
-            {...register("bookId")}
-          />
-        </div>
-        <Select
-          label="From"
-          required
-          error={errors.fromWarehouseId?.message}
-          options={[{ value: "", label: "Source warehouse" }, ...warehouses.map((w) => ({ value: w.id, label: w.name }))]}
-          {...register("fromWarehouseId")}
-        />
-        <Select
-          label="To"
-          required
-          error={errors.toWarehouseId?.message}
-          options={[{ value: "", label: "Destination warehouse" }, ...warehouses.map((w) => ({ value: w.id, label: w.name }))]}
-          {...register("toWarehouseId")}
-        />
-        <Input
-          label="Quantity"
-          type="number"
-          min={1}
-          required
-          error={errors.quantity?.message}
-          {...register("quantity")}
-        />
-        <Input label="Reason" hint="Optional" error={errors.reason?.message} {...register("reason")} />
-        <div className="sm:col-span-2">
-          <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? "Transferring…" : "Transfer"}
-          </Button>
-        </div>
-      </form>
     </Card>
   );
 }

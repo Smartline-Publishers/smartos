@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { ProtectedRoute } from "@/components/layout/ProtectedRoute";
 import { AppShell } from "@/components/layout/AppShell";
-import { TopBar } from "@/components/layout/TopBar";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
@@ -84,7 +83,6 @@ export default function ReportsPage() {
 
   return (
     <ProtectedRoute>
-      <TopBar />
       <AppShell>
         <div className="flex flex-col gap-4">
           <PageHeader
@@ -92,7 +90,7 @@ export default function ReportsPage() {
             description="Sales, royalty liability and editorial throughput, computed live from system records."
           />
           {actionError ? (
-            <p role="alert" className="rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700">
+            <p role="alert" className="rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-300">
               {actionError}
             </p>
           ) : null}
@@ -136,34 +134,34 @@ export default function ReportsPage() {
                 {!sales || sales.rows.length === 0 ? (
                   <EmptyState title="No sales in period" description="Fulfilled orders in the range appear here." />
                 ) : (
-                  <div className="overflow-x-auto rounded-md border border-slate-200">
+                  <div className="shell-scroll overflow-x-auto rounded-md border border-slate-200 dark:border-neutral-800">
                     <table className="w-full border-collapse text-left text-sm">
                       <caption className="sr-only">Sales by title</caption>
-                      <thead className="bg-slate-50">
+                      <thead className="bg-slate-50 dark:bg-neutral-800/60">
                         <tr>
-                          <th scope="col" className="px-3 py-2 font-semibold text-slate-700">Book</th>
-                          <th scope="col" className="px-3 py-2 text-right font-semibold text-slate-700">Qty</th>
-                          <th scope="col" className="px-3 py-2 text-right font-semibold text-slate-700">Revenue</th>
-                          <th scope="col" className="px-3 py-2 text-right font-semibold text-slate-700">Refunds</th>
-                          <th scope="col" className="px-3 py-2 text-right font-semibold text-slate-700">Net</th>
+                          <th scope="col" className="px-3 py-2 font-semibold text-slate-700 dark:text-neutral-300">Book</th>
+                          <th scope="col" className="px-3 py-2 text-right font-semibold text-slate-700 dark:text-neutral-300">Qty</th>
+                          <th scope="col" className="px-3 py-2 text-right font-semibold text-slate-700 dark:text-neutral-300">Revenue</th>
+                          <th scope="col" className="px-3 py-2 text-right font-semibold text-slate-700 dark:text-neutral-300">Refunds</th>
+                          <th scope="col" className="px-3 py-2 text-right font-semibold text-slate-700 dark:text-neutral-300">Net</th>
                         </tr>
                       </thead>
                       <tbody>
                         {sales.rows.map((r) => (
-                          <tr key={r.bookId} className="border-t border-slate-200">
-                            <td className="px-3 py-2 text-slate-900">{r.bookTitle}</td>
-                            <td className="px-3 py-2 text-right tabular-nums text-slate-900">{r.quantity}</td>
-                            <td className="px-3 py-2 text-right tabular-nums text-slate-700">{formatGHS(r.revenue)}</td>
-                            <td className="px-3 py-2 text-right tabular-nums text-amber-700">{formatGHS(r.refunds)}</td>
-                            <td className="px-3 py-2 text-right font-semibold tabular-nums text-slate-900">{formatGHS(r.net)}</td>
+                          <tr key={r.bookId} className="border-t border-slate-200 dark:border-neutral-800">
+                            <td className="px-3 py-2 text-slate-900 dark:text-neutral-100">{r.bookTitle}</td>
+                            <td className="px-3 py-2 text-right tabular-nums text-slate-900 dark:text-neutral-100">{r.quantity}</td>
+                            <td className="px-3 py-2 text-right tabular-nums text-slate-700 dark:text-neutral-300">{formatGHS(r.revenue)}</td>
+                            <td className="px-3 py-2 text-right tabular-nums text-amber-700 dark:text-amber-400">{formatGHS(r.refunds)}</td>
+                            <td className="px-3 py-2 text-right font-semibold tabular-nums text-slate-900 dark:text-neutral-100">{formatGHS(r.net)}</td>
                           </tr>
                         ))}
-                        <tr className="border-t-2 border-slate-300 bg-slate-50 font-semibold">
-                          <td className="px-3 py-2 text-slate-900">Total</td>
-                          <td className="px-3 py-2 text-right tabular-nums text-slate-900">{sales.totalQuantity}</td>
-                          <td className="px-3 py-2 text-right tabular-nums text-slate-900">{formatGHS(sales.totalRevenue)}</td>
-                          <td className="px-3 py-2 text-right tabular-nums text-amber-700">{formatGHS(sales.totalRefunds)}</td>
-                          <td className="px-3 py-2 text-right tabular-nums text-slate-900">{formatGHS(sales.totalNet)}</td>
+                        <tr className="border-t-2 border-slate-300 bg-slate-50 font-semibold dark:border-neutral-600 dark:bg-neutral-800/60">
+                          <td className="px-3 py-2 text-slate-900 dark:text-neutral-100">Total</td>
+                          <td className="px-3 py-2 text-right tabular-nums text-slate-900 dark:text-neutral-100">{sales.totalQuantity}</td>
+                          <td className="px-3 py-2 text-right tabular-nums text-slate-900 dark:text-neutral-100">{formatGHS(sales.totalRevenue)}</td>
+                          <td className="px-3 py-2 text-right tabular-nums text-amber-700 dark:text-amber-400">{formatGHS(sales.totalRefunds)}</td>
+                          <td className="px-3 py-2 text-right tabular-nums text-slate-900 dark:text-neutral-100">{formatGHS(sales.totalNet)}</td>
                         </tr>
                       </tbody>
                     </table>
@@ -177,32 +175,32 @@ export default function ReportsPage() {
                     <EmptyState title="No data" description="Royalty statements will summarise here." />
                   ) : (
                     <dl className="grid gap-2 text-sm sm:grid-cols-3">
-                      <div className="rounded-lg bg-slate-50 p-3">
-                        <dt className="text-xs text-slate-500">Draft</dt>
-                        <dd className="text-lg font-bold tabular-nums text-slate-900">
+                      <div className="rounded-lg bg-slate-50 p-3 dark:bg-neutral-800/60">
+                        <dt className="text-xs text-slate-500 dark:text-neutral-400">Draft</dt>
+                        <dd className="text-lg font-bold tabular-nums text-slate-900 dark:text-neutral-100">
                           {formatGHS(liability.draftTotal)}
                         </dd>
                       </div>
-                      <div className="rounded-lg bg-slate-50 p-3">
-                        <dt className="text-xs text-slate-500">Approved</dt>
-                        <dd className="text-lg font-bold tabular-nums text-slate-900">
+                      <div className="rounded-lg bg-slate-50 p-3 dark:bg-neutral-800/60">
+                        <dt className="text-xs text-slate-500 dark:text-neutral-400">Approved</dt>
+                        <dd className="text-lg font-bold tabular-nums text-slate-900 dark:text-neutral-100">
                           {formatGHS(liability.approvedTotal)}
                         </dd>
                       </div>
-                      <div className="rounded-lg bg-slate-50 p-3">
-                        <dt className="text-xs text-slate-500">Paid (all time)</dt>
-                        <dd className="text-lg font-bold tabular-nums text-slate-900">
+                      <div className="rounded-lg bg-slate-50 p-3 dark:bg-neutral-800/60">
+                        <dt className="text-xs text-slate-500 dark:text-neutral-400">Paid (all time)</dt>
+                        <dd className="text-lg font-bold tabular-nums text-slate-900 dark:text-neutral-100">
                           {formatGHS(liability.paidTotal)}
                         </dd>
                       </div>
                     </dl>
                   )}
                   {liability && liability.byContributor.length > 0 ? (
-                    <ul className="mt-3 flex flex-col divide-y divide-slate-100">
+                    <ul className="mt-3 flex flex-col divide-y divide-slate-100 dark:divide-neutral-800">
                       {liability.byContributor.map((c) => (
                         <li key={c.contributorId} className="flex items-center justify-between gap-2 py-1.5 text-sm">
-                          <span className="font-medium text-slate-900">{c.contributorName}</span>
-                          <span className="font-semibold tabular-nums text-slate-900">
+                          <span className="font-medium text-slate-900 dark:text-neutral-100">{c.contributorName}</span>
+                          <span className="font-semibold tabular-nums text-slate-900 dark:text-neutral-100">
                             {formatGHS(c.pending)}
                           </span>
                         </li>
@@ -215,20 +213,20 @@ export default function ReportsPage() {
                     <EmptyState title="No data" description="Manuscript activity will summarise here." />
                   ) : (
                     <>
-                      <p className="text-sm text-slate-600">
-                        <span className="font-semibold tabular-nums text-slate-900">{editorial.submitted}</span>{" "}
+                      <p className="text-sm text-slate-600 dark:text-neutral-400">
+                        <span className="font-semibold tabular-nums text-slate-900 dark:text-neutral-100">{editorial.submitted}</span>{" "}
                         submitted ·{" "}
-                        <span className="font-semibold tabular-nums text-slate-900">{editorial.approved}</span>{" "}
+                        <span className="font-semibold tabular-nums text-slate-900 dark:text-neutral-100">{editorial.approved}</span>{" "}
                         approved
                       </p>
                       <ul className="mt-2 flex flex-col gap-1.5">
                         {editorial.transitions.map((t) => (
                           <li key={t.stage} className="flex items-center gap-2 text-sm">
                             <span className="h-2 w-2 rounded-full bg-brand-500" aria-hidden="true" />
-                            <span className="flex-1 text-slate-700">
+                            <span className="flex-1 text-slate-700 dark:text-neutral-300">
                               Moved to {t.stage.replace(/_/g, " ").toLowerCase()}
                             </span>
-                            <span className="font-semibold tabular-nums text-slate-900">{t.count}</span>
+                            <span className="font-semibold tabular-nums text-slate-900 dark:text-neutral-100">{t.count}</span>
                           </li>
                         ))}
                       </ul>

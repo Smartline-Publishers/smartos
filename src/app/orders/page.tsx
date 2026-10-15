@@ -4,7 +4,6 @@ import { useCallback, useEffect, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { ProtectedRoute } from "@/components/layout/ProtectedRoute";
 import { AppShell } from "@/components/layout/AppShell";
-import { TopBar } from "@/components/layout/TopBar";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
@@ -128,7 +127,6 @@ export default function OrdersPage() {
 
   return (
     <ProtectedRoute>
-      <TopBar />
       <AppShell>
         <div className="flex flex-col gap-4">
           <PageHeader
@@ -136,7 +134,7 @@ export default function OrdersPage() {
             description="Customer orders from draft to fulfilment. Totals are computed by the server."
           />
           {actionError ? (
-            <p role="alert" className="rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700">
+            <p role="alert" className="rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-300">
               {actionError}
             </p>
           ) : null}
@@ -195,7 +193,7 @@ export default function OrdersPage() {
                 </div>
               ))}
               {formError ? (
-                <p role="alert" className="text-sm text-red-600">
+                <p role="alert" className="text-sm text-red-600 dark:text-red-400">
                   {formError}
                 </p>
               ) : null}
@@ -203,9 +201,9 @@ export default function OrdersPage() {
                 <Button size="sm" variant="ghost" onClick={() => setRows((prev) => [...prev, { ...EMPTY_ROW }])}>
                   + Add item
                 </Button>
-                <p className="text-sm text-slate-600" aria-live="polite">
+                <p className="text-sm text-slate-600 dark:text-neutral-400" aria-live="polite">
                   Estimate:{" "}
-                  <span className="font-semibold tabular-nums text-slate-900">
+                  <span className="font-semibold tabular-nums text-slate-900 dark:text-neutral-100">
                     {formatGHS(previewTotal)}
                   </span>{" "}
                   <span className="text-xs">(server computes the final total)</span>
@@ -244,22 +242,22 @@ export default function OrdersPage() {
                 {data.items.map((o) => (
                   <li
                     key={o.id}
-                    className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-xl border border-slate-200/90 bg-white px-4 py-3 shadow-[0_1px_2px_rgb(15_23_42/0.05)]"
+                    className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-xl border border-slate-200/90 bg-white px-4 py-3 shadow-[0_1px_2px_rgb(15_23_42/0.05)] dark:border-neutral-800 dark:bg-neutral-900 dark:shadow-none"
                   >
                     <div className="min-w-0 flex-1">
                       <Link
                         href={`/orders/${o.id}`}
-                        className="text-sm font-semibold text-brand-700 hover:underline"
+                        className="text-sm font-semibold text-brand-700 hover:underline dark:text-brand-300"
                       >
                         {o.customerName ?? "Order"} · {o.items.length}{" "}
                         {o.items.length === 1 ? "item" : "items"}
                       </Link>
-                      <p className="text-xs text-slate-500">
+                      <p className="text-xs text-slate-500 dark:text-neutral-400">
                         {o.createdAt ? new Date(o.createdAt).toLocaleDateString("en-GH") : ""}
                       </p>
                     </div>
                     <Badge status={o.status} />
-                    <span className="text-sm font-bold tabular-nums text-slate-900">
+                    <span className="text-sm font-bold tabular-nums text-slate-900 dark:text-neutral-100">
                       {formatGHS(o.total)}
                     </span>
                     {o.status === "DRAFT" ? (
@@ -275,7 +273,7 @@ export default function OrdersPage() {
                       <Button
                         size="sm"
                         variant="ghost"
-                        className="text-red-700 hover:bg-red-50"
+                        className="text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950"
                         onClick={() => {
                           if (window.confirm("Cancel this order?")) {
                             void runAction(() => cancelOrder(o.id), "Cancel failed");

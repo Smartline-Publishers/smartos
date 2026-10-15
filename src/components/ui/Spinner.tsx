@@ -7,10 +7,10 @@ export interface SpinnerProps {
 
 export function Spinner({ label = "Loading…", className }: SpinnerProps) {
   return (
-    <span role="status" className={cn("inline-flex items-center gap-2 text-sm text-slate-600", className)}>
+    <span role="status" className={cn("inline-flex items-center gap-2 text-sm text-slate-600 dark:text-neutral-400", className)}>
       <span
         aria-hidden="true"
-        className="h-4 w-4 animate-spin rounded-full border-2 border-slate-300 border-t-brand-600"
+        className="h-4 w-4 animate-spin rounded-full border-2 border-slate-300 border-t-brand-600 dark:border-neutral-600 dark:border-t-brand-400"
       />
       {label}
     </span>

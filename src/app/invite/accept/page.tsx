@@ -6,6 +6,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import Link from "next/link";
 import { Card } from "@/components/ui/Card";
+import { Brand } from "@/components/layout/Brand";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { Spinner } from "@/components/ui/Spinner";
@@ -54,6 +55,7 @@ function InviteAcceptContent() {
   return (
     <main id="main-content" className="mx-auto max-w-md py-10">
       <h1 className="sr-only">Accept organization invitation</h1>
+      <Brand tone="light" className="mb-6 text-center" />
       <Card title="You've been invited">
         <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-3" aria-label="Accept invitation form">
           <Input
@@ -80,7 +82,7 @@ function InviteAcceptContent() {
             {...register("password")}
           />
           {serverError ? (
-            <p role="alert" className="text-sm text-red-600">
+              <p role="alert" className="text-sm text-red-600 dark:text-red-400">
               {serverError}
             </p>
           ) : null}
@@ -89,8 +91,8 @@ function InviteAcceptContent() {
           </Button>
         </form>
       </Card>
-      <p className="mt-4 text-center text-sm text-slate-600">
-        Already have an account? <Link href="/login" className="font-semibold text-brand-700 hover:underline">Log in</Link>
+      <p className="mt-4 text-center text-sm text-slate-600 dark:text-neutral-400">
+        Already have an account? <Link href="/login" className="font-semibold text-brand-700 hover:underline dark:text-brand-300">Log in</Link>
       </p>
     </main>
   );

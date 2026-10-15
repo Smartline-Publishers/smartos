@@ -18,7 +18,7 @@ export default function Error({
   return (
     <div className="py-10" role="alert">
       <Card title="Something went wrong">
-        <p className="mb-3 text-sm text-slate-600">
+        <p className="mb-3 text-sm text-slate-600 dark:text-neutral-400">
           {error.message || "An unexpected error occurred."}
         </p>
         <Button onClick={reset}>Try again</Button>

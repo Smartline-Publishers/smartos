@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { cn } from "@/lib/cn";
 import { Sparkline } from "@/components/charts/Sparkline";
+import type { Icon as PhosphorIcon } from "@phosphor-icons/react";
 
 export interface StatDelta {
   text: string;
@@ -15,45 +16,65 @@ export interface StatCardProps {
   spark?: { data: number[]; label: string };
   href?: string;
   linkLabel?: string;
+  /** Leading glyph in a tinted chip (e.g. the section icon). */
+  icon?: PhosphorIcon;
+  /** Chip colors, e.g. "bg-brand-50 text-brand-700 dark:bg-brand-950 dark:text-brand-300". */
+  iconTone?: string;
 }
 
-const DELTA_TONE: Record<StatDelta["tone"], string> = {
-  up: "bg-emerald-50 text-emerald-800",
-  down: "bg-rose-50 text-rose-800",
-  flat: "bg-slate-100 text-slate-700",
+const DELTA_TEXT: Record<StatDelta["tone"], string> = {
+  up: "text-[#08784f] dark:text-emerald-300",
+  down: "text-[#5c6677] dark:text-neutral-300",
+  flat: "text-[#5c6677] dark:text-neutral-300",
 };
 
 const DELTA_MARK: Record<StatDelta["tone"], string> = { up: "▲", down: "▼", flat: "•" };
 
-/** KPI card: label, tabular figure, text delta chip (never color-only), optional sparkline. */
-export function StatCard({ label, value, sub, delta, spark, href, linkLabel }: StatCardProps) {
+/** Compact KPI card: icon chip, label, figure, delta line and sparkline. */
+export function StatCard({
+  label,
+  value,
+  sub,
+  delta,
+  spark,
+  href,
+  linkLabel,
+  icon: CardIcon,
+  iconTone,
+}: StatCardProps) {
   return (
     <section
       aria-label={label}
-      className="flex min-w-0 flex-col gap-1 rounded-xl border border-slate-200/90 bg-white p-5 shadow-[0_1px_2px_rgb(15_23_42/0.05)]"
+      className="flex min-w-0 flex-col gap-0.5 rounded-[13px] border border-line bg-white p-3 dark:border-neutral-800 dark:bg-neutral-900"
     >
-      <div className="flex items-center justify-between gap-2">
-        <h2 className="truncate text-[13px] font-semibold text-slate-600">{label}</h2>
-        {delta ? (
-          <span
-            className={cn(
-              "inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold",
-              DELTA_TONE[delta.tone],
-            )}
-          >
-            <span aria-hidden="true">{DELTA_MARK[delta.tone]}</span>
-            {delta.text}
-          </span>
-        ) : null}
-      </div>
-      <p className="text-[28px] font-bold tabular-nums tracking-tight text-slate-900">{value}</p>
-      <div className="mt-auto flex items-end justify-between gap-3">
+      {CardIcon ? (
+        <span
+          aria-hidden="true"
+          className={cn(
+            "flex h-8 w-8 items-center justify-center rounded-lg",
+            iconTone ?? "bg-brand-50 text-brand-700 dark:bg-brand-950 dark:text-brand-300",
+          )}
+        >
+          <CardIcon size={16} aria-hidden="true" />
+        </span>
+      ) : null}
+      <h2 className="truncate text-xs text-muted dark:text-neutral-400">{label}</h2>
+      <p className="text-[22px] font-extrabold tabular-nums leading-tight tracking-tight text-ink dark:text-neutral-100">
+        {value}
+      </p>
+      <div className="mt-auto flex items-end justify-between gap-2 pt-1">
         <div className="min-w-0">
-          {sub ? <p className="text-xs text-slate-500">{sub}</p> : null}
+          {delta ? (
+            <p className={cn("text-xs font-semibold", DELTA_TEXT[delta.tone])}>
+              <span aria-hidden="true">{DELTA_MARK[delta.tone]} </span>
+              {delta.text}
+            </p>
+          ) : null}
+          {sub ? <p className="mt-0.5 text-[11px] text-muted dark:text-neutral-400">{sub}</p> : null}
           {href && linkLabel ? (
             <Link
               href={href}
-              className="mt-1 inline-block text-[13px] font-semibold text-brand-700 hover:underline"
+              className="mt-0.5 inline-block text-[13px] font-semibold text-brand-700 hover:underline dark:text-brand-300"
             >
               {linkLabel}
             </Link>
@@ -63,7 +84,7 @@ export function StatCard({ label, value, sub, delta, spark, href, linkLabel }: S
           <Sparkline
             data={spark.data}
             label={spark.label}
-            className="shrink-0 text-brand-600"
+            className="h-8 w-20 shrink-0 text-brand-600 dark:text-brand-400"
           />
         ) : null}
       </div>
