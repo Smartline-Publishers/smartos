@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { ProtectedRoute } from "@/components/layout/ProtectedRoute";
 import { AppShell } from "@/components/layout/AppShell";
 import { Card } from "@/components/ui/Card";
@@ -25,7 +25,7 @@ export default function OrderDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const { id } = use(params);
+  const { id } = params as unknown as { id: string };
   const [order, setOrder] = useState<Order | null>(null);
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
   const [warehouseId, setWarehouseId] = useState("");
@@ -34,24 +34,27 @@ export default function OrderDetailPage({
   const [actionError, setActionError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
-  const refresh = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const [o, whs] = await Promise.all([getOrder(id), listWarehouses()]);
-      setOrder(o);
-      setWarehouses(whs);
-      if (whs.length === 1) setWarehouseId(whs[0].id);
-    } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Failed to load order");
-    } finally {
-      setLoading(false);
-    }
-  }, [id]);
-
   useEffect(() => {
-    void refresh();
-  }, [refresh]);
+    let alive = true;
+    (async () => {
+      const { id } = params as unknown as { id: string };
+      setLoading(true);
+      setError(null);
+      try {
+        const [o, whs] = await Promise.all([getOrder(id), listWarehouses()]);
+        if (alive) setOrder(o);
+        if (alive) setWarehouses(whs);
+        if (alive && whs.length === 1) setWarehouseId(whs[0].id);
+      } catch (e: unknown) {
+        if (alive) setError(e instanceof Error ? e.message : "Failed to load order");
+      } finally {
+        if (alive) setLoading(false);
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   const runAction = async (fn: () => Promise<Order>, failure: string) => {
     setBusy(true);

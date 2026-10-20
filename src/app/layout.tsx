@@ -10,6 +10,19 @@ const inter = Inter({ subsets: ["latin"], display: "swap" });
 export const metadata: Metadata = {
   title: "SmartOS | Smartline Publishers",
   description: "SmartOS publishing operations",
+  icons: [
+    { rel: "icon", type: "image/png", sizes: "16x16", url: "/icons/favicon-16x16.png" },
+    { rel: "icon", type: "image/png", sizes: "32x32", url: "/icons/favicon-32x32.png" },
+    { rel: "icon", type: "image/png", sizes: "192x192", url: "/icons/icon-192.png" },
+    { rel: "icon", type: "image/png", sizes: "512x512", url: "/icons/icon-512.png" },
+    { rel: "apple-touch-icon", type: "image/png", sizes: "180x180", url: "/icons/apple-touch-icon.png" },
+    { rel: "mask-icon", type: "image/png", sizes: "512x512", url: "/icons/maskable-icon.png" },
+  ],
+  manifest: "/manifest.json",
+  appleWebApp: {
+    title: "SmartOS",
+    statusBarStyle: "default",
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -27,6 +40,21 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <OrgProvider>{children}</OrgProvider>
           </AuthProvider>
         </ThemeProvider>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              if ('serviceWorker' in navigator) {
+                window.addEventListener('load', () => {
+                  navigator.serviceWorker.register('/sw.js').then((registration) => {
+                    console.log('SW registered: ', registration);
+                  }).catch((registrationError) => {
+                    console.log('SW registration failed: ', registrationError);
+                  });
+                });
+              }
+            `,
+          }}
+        />
       </body>
     </html>
   );

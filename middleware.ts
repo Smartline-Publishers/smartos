@@ -2,19 +2,15 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 /**
- * Tokens are currently stored in localStorage (client-side), so middleware
- * cannot read them. This middleware only handles the `/` -> `/dashboard`
- * redirect.
+ * Tokens are stored in localStorage (client-side), so middleware cannot read
+ * them. Route guarding is handled client-side in src/app/page.tsx:
+ *   - Authenticated users are redirected to /dashboard
+ *   - Unauthenticated users are redirected to /login
  *
- * Upgrade path: move access/refresh tokens to httpOnly cookies set by the
- * backend (or a Next.js route handler proxy). Then check the cookie here and
- * redirect unauthenticated users to `/login` for protected routes.
+ * This middleware is reserved for future server-side auth checks once tokens
+ * move to httpOnly cookies.
  */
 export function middleware(request: NextRequest) {
-  const { pathname } = request.nextUrl;
-  if (pathname === "/") {
-    return NextResponse.redirect(new URL("/dashboard", request.url));
-  }
   return NextResponse.next();
 }
 

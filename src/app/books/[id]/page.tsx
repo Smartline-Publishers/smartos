@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { ProtectedRoute } from "@/components/layout/ProtectedRoute";
 import { AppShell } from "@/components/layout/AppShell";
 import { Card } from "@/components/ui/Card";
@@ -20,7 +20,7 @@ export default function BookDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const { id } = use(params);
+  const { id } = params as unknown as { id: string };
   const [book, setBook] = useState<Book | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -31,20 +31,23 @@ export default function BookDetailPage({
 
   useEffect(() => {
     let alive = true;
-    getBook(id)
-      .then((b) => {
-        if (alive) setBook(b);
-      })
-      .catch((e: Error) => {
-        if (alive) setError(e.message ?? "Failed to load book");
-      })
-      .finally(() => {
-        if (alive) setLoading(false);
-      });
+    (async () => {
+      const { id } = params as unknown as { id: string };
+      getBook(id)
+        .then((b) => {
+          if (alive) setBook(b);
+        })
+        .catch((e: Error) => {
+          if (alive) setError(e.message ?? "Failed to load book");
+        })
+        .finally(() => {
+          if (alive) setLoading(false);
+        });
+    })();
     return () => {
       alive = false;
     };
-  }, [id]);
+  }, []);
 
   const handleSave = async (values: CreateBookInput) => {
     setSaving(true);
