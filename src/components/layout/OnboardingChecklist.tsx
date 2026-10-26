@@ -7,11 +7,20 @@ import { useAuth } from "@/hooks/use-auth";
 import { useOrg } from "@/hooks/use-org";
 import { updateOnboarding } from "@/features/settings/api";
 import { cn } from "@/lib/cn";
+import type { OnboardingChecklist as OnboardingChecklistData } from "@/features/settings/api";
 
 const COLLAPSED_KEY = "smartos.onboardingCollapsed";
 
-function isAdmin(roles: string[] | undefined): boolean {
-  return !!roles?.some((r) => r === "ORG_ADMIN" || r === "PLATFORM_ADMIN");
+/**
+ * Where "Complete Setup" should go: the first required step still outstanding.
+ * Every role can open the profile and security sections, so this never lands
+ * a user on a screen their role cannot access.
+ */
+function nextHref(onboarding: OnboardingChecklistData): string {
+  const nextRequired = onboarding.items.find((i) => !i.optional && !i.completed);
+  if (nextRequired) return nextRequired.href;
+  const anyOpen = onboarding.items.find((i) => !i.completed);
+  return anyOpen ? anyOpen.href : "/settings?section=profile";
 }
 
 function readCollapsed(): boolean {
@@ -34,11 +43,16 @@ export function OnboardingChecklist() {
   const [collapsed, setCollapsed] = useState<boolean>(readCollapsed);
   const [dismissing, setDismissing] = useState(false);
 
-  if (!isAdmin(user?.roles)) return null;
   if (!onboarding || onboarding.dismissed || onboarding.complete) return null;
 
-  const done = onboarding.items.filter((i) => i.completed).length;
-  const total = onboarding.items.length;
+  // Progress counts required steps only, matching the API's completion rule.
+  const done = onboarding.requiredCompleted;
+  const total = onboarding.requiredTotal;
+  const percent = total === 0 ? 100 : Math.round((done / total) * 100);
+  // The list shows the steps still outstanding, required ones first.
+  const remaining = [...onboarding.items]
+    .filter((i) => !i.completed)
+    .sort((a, b) => Number(a.optional) - Number(b.optional));
 
   const toggle = () => {
     setCollapsed((prev) => {
@@ -109,14 +123,13 @@ export function OnboardingChecklist() {
       >
         <div
           className="h-full rounded-full bg-brand-500 transition-all"
-          style={{ width: `${total === 0 ? 0 : Math.round((done / total) * 100)}%` }}
+          style={{ width: `${percent}%` }}
         />
       </div>
       {collapsed ? null : (
         <div className="mt-1.5">
           <ul className="flex flex-col" aria-label="Remaining setup steps">
-            {onboarding.items
-              .filter((i) => !i.completed)
+            {remaining
               .slice(0, 3)
               .map((item) => (
                 <li key={item.key}>
@@ -145,7 +158,7 @@ export function OnboardingChecklist() {
               Full checklist
             </Link>
             <Link
-              href="/settings?section=organization"
+              href={nextHref(onboarding)}
               className="text-xs font-semibold text-[rgb(var(--org-sidebar-muted,212_212_212))] hover:text-[rgb(var(--org-sidebar-fg,255_255_255))] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
             >
               Complete Setup

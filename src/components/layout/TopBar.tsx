@@ -5,24 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/use-auth";
 import { useOrg } from "@/hooks/use-org";
 import { ThemeSelector } from "@/components/layout/ThemeSelector";
-
-const CRUMBS: Record<string, string> = {
-  "/dashboard": "Overview",
-  "/reports": "Reports",
-  "/books": "Book catalogue",
-  "/manuscripts": "Manuscripts",
-  "/contributors": "Contributors",
-  "/tasks": "Tasks",
-  "/production": "Production",
-  "/inventory": "Inventory",
-  "/customers": "Customers",
-  "/orders": "Orders",
-  "/finance": "Finance",
-  "/royalties": "Royalties",
-  "/users": "Users",
-  "/audit": "Audit log",
-  "/profile": "Profile",
-};
+import { labelForPath } from "@/components/layout/navigation";
 
 function shortOrg(orgId: string | undefined): string {
   if (!orgId) return "No organization";
@@ -48,12 +31,12 @@ export function TopBar() {
     router.push(`/books${query.trim() ? `?search=${encodeURIComponent(query.trim())}` : ""}`);
   };
 
-  const crumb = CRUMBS[pathname] ?? (pathname.startsWith("/books/") ? "Book catalogue" : pathname.startsWith("/orders/") ? "Orders" : "SmartOS");
+  const crumb = labelForPath(pathname);
 
   return (
-    <div className="flex shrink-0 items-center gap-3 border-b border-line bg-white px-4 py-[13px] dark:border-neutral-800 dark:bg-neutral-900 md:gap-4 md:px-7 md:py-[17px]">
+    <div className="hidden shrink-0 items-center gap-3 border-b border-line bg-white px-4 py-[13px] dark:border-neutral-800 dark:bg-neutral-900 md:flex md:gap-4 md:px-7 md:py-[17px]">
       <p className="shrink-0 text-[16px] font-bold text-ink dark:text-neutral-100" aria-current="page">
-        {crumb}
+        {crumb === "Dashboard" ? "Overview" : crumb}
       </p>
       <form
         role="search"

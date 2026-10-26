@@ -9,6 +9,7 @@ import { useOrg } from "@/hooks/use-org";
 import { cn } from "@/lib/cn";
 import { Brand } from "@/components/layout/Brand";
 import { TopBar } from "@/components/layout/TopBar";
+import { MobileHeader } from "@/components/layout/MobileHeader";
 import { MobileNav } from "@/components/layout/MobileNav";
 import { AccountMenuPanel } from "@/components/layout/AccountMenu";
 import { OnboardingChecklist } from "@/components/layout/OnboardingChecklist";
@@ -19,6 +20,9 @@ import {
   isRouteActive,
   sectionForPath,
   visibleChildren,
+  visibleSections,
+  getAllAccessibleItems,
+  shouldUseSimpleNavigation,
   type NavSection,
 } from "@/components/layout/navigation";
 
@@ -110,8 +114,8 @@ function SidebarGroup({
   onToggle: () => void;
 }) {
   const pathname = usePathname();
-  const { user } = useAuth();
-  const children = visibleChildren(section, user?.roles);
+  const { permissions } = useAuth();
+  const children = visibleChildren(section, permissions);
   const active =
     isRouteActive(pathname, section.href) ||
     children.some((c) => isRouteActive(pathname, c.href));
@@ -174,45 +178,6 @@ function SidebarGroup({
   );
 }
 
-/** In-page section tabs (pill strip under the app bar). */
-function SectionTabs() {
-  const pathname = usePathname();
-  const { user } = useAuth();
-  const section = sectionForPath(pathname);
-  const tabs = section ? visibleChildren(section, user?.roles) : [];
-  if (!section || tabs.length < 2) return null;
-
-  return (
-    <div className="shrink-0 border-b border-line bg-white dark:border-neutral-800 dark:bg-neutral-900 lg:hidden">
-      <nav
-        aria-label={`${section.label} sections`}
-        className="shell-scroll mx-auto flex max-w-[1500px] gap-1 overflow-x-auto overscroll-x-contain px-[15px] py-2 md:px-7"
-      >
-        {tabs.map((tab) => {
-          const active = isRouteActive(pathname, tab.href);
-          const TabIcon = tab.icon;
-          return (
-            <Link
-              key={tab.href}
-              href={tab.href}
-              aria-current={active ? "page" : undefined}
-              className={cn(
-                "inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-3 py-1.5 text-[13px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500",
-                active
-                  ? "bg-brand-50 text-brand-700 dark:bg-brand-950 dark:text-brand-300"
-                  : "text-slate-600 hover:bg-slate-100 hover:text-ink dark:text-neutral-400 dark:hover:bg-neutral-800 dark:hover:text-neutral-100",
-              )}
-            >
-              <TabIcon size={15} aria-hidden="true" className="shrink-0" />
-              {tab.label}
-            </Link>
-          );
-        })}
-      </nav>
-    </div>
-  );
-}
-
 /** Fixed sidebar footer: profile opens an anchored account menu; logout stays pinned. */
 function SidebarFooter({ collapsed }: { collapsed: boolean }) {
   const { user, logout } = useAuth();
@@ -252,7 +217,7 @@ function SidebarFooter({ collapsed }: { collapsed: boolean }) {
         </button>
         <button
           type="button"
-          onClick={logout}
+          onClick={() => logout()}
           aria-label="Log out"
           title="Log out"
           className="flex h-9 w-9 items-center justify-center rounded-lg text-[rgb(var(--org-sidebar-muted,212_212_212))] transition-colors hover:bg-navy-700 hover:text-[rgb(var(--org-sidebar-fg,255_255_255))] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
@@ -296,7 +261,7 @@ function SidebarFooter({ collapsed }: { collapsed: boolean }) {
           {user?.email ?? "Signed in"}
         </span>
       </button>
-      <Button variant="ghost" size="sm" onClick={logout} aria-label="Log out" className="w-full">
+      <Button variant="ghost" size="sm" onClick={() => logout()} aria-label="Log out" className="w-full">
         <SignOut size={16} aria-hidden="true" />
         Logout
       </Button>
@@ -312,9 +277,9 @@ function SidebarFooter({ collapsed }: { collapsed: boolean }) {
  * Shared authenticated shell.
  *
  * Desktop/tablet: persistent collapsible sidebar (accordion sections) +
- * fixed app bar + in-page section tabs. Mobile: slim brand header, fixed app
- * bar, floating bottom dock with a separated More menu. Main content scrolls
- * independently everywhere with clearance for the dock.
+ * fixed app bar. Mobile: slim app bar, floating bottom dock for destination
+ * switching, and page-level floating action buttons for the primary CTA.
+ * Main content scrolls independently everywhere with clearance for the dock.
  */
 export function AppShell({ children }: { children: React.ReactNode }) {
   // NOTE: must initialize to `false` so the first client render matches SSR.
@@ -324,8 +289,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   // returning collapsed-sidebar user doesn't see the layout slide/bounce.
   const [mounted, setMounted] = useState<boolean>(false);
   const pathname = usePathname();
-  const { user } = useAuth();
+  const { permissions } = useAuth();
   const { org } = useOrg();
+
+  // Only sections the caller's role may open are rendered; a role never sees
+  // a navigation entry for a destination the API would refuse to serve.
+  const sections = visibleSections(permissions);
+
+  // Check if we should use simplified flat navigation (fewer than 5 accessible items)
+  const useSimpleNav = shouldUseSimpleNavigation(permissions);
+  const allAccessibleItems = getAllAccessibleItems(permissions);
 
   useEffect(() => {
     setCollapsed(readCollapsedInitial());
@@ -340,9 +313,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const active = sectionForPath(pathname);
-    if (active?.children) {
-      setOpenMap((prev) => (prev[active.id] ? prev : { ...prev, [active.id]: true }));
-    }
+    setOpenMap(active?.children ? { [active.id]: true } : {});
   }, [pathname]);
 
   const toggle = useCallback(() => {
@@ -358,20 +329,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }, []);
 
   const toggleSection = useCallback((id: string) => {
-    setOpenMap((prev) => ({ ...prev, [id]: !prev[id] }));
+    // Accordion behavior: opening one section collapses every other section.
+    setOpenMap((prev) => (prev[id] ? {} : { [id]: true }));
   }, []);
 
   const ToggleIcon = collapsed ? CaretDoubleRight : CaretDoubleLeft;
 
   return (
     <div className="flex h-dvh flex-col overflow-hidden bg-paper dark:bg-neutral-950 md:flex-row">
-      {/* Mobile brand header (fixed). Navigation lives in the bottom dock. */}
-      <div className="shrink-0 border-b border-[#E5E7EB] bg-navy-900 text-[rgb(var(--org-sidebar-fg,255_255_255))] dark:border-neutral-800 md:hidden">
-        <div className="flex items-center px-4 py-3">
-          <Brand tone="dark" logoUrl={org?.logoUrl} />
-        </div>
-      </div>
-
       {/* Desktop/tablet sidebar (fixed width, full viewport height). */}
       <aside
         aria-label="Application sidebar"
@@ -389,44 +354,51 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             collapsed ? "items-center gap-1 px-2 pb-3 pt-4" : "gap-1 px-[14px] pb-4 pt-4",
           )}
         >
-          <div
-            className={cn(
-              "flex w-full items-center",
-              collapsed ? "flex-col justify-center gap-1" : "justify-between gap-2",
-            )}
-          >
           {collapsed ? (
-            /* Collapsed rail always shows the built-in app mark — never a
-               custom logo URL, which may fail and render as a broken image. */
-            <Brand tone="dark" compact />
+            <>
+              {/* Collapsed rail always shows the built-in app mark — never a
+                  custom logo URL, which may fail and render as a broken image. */}
+              <Brand tone="dark" compact />
+              <button
+                type="button"
+                onClick={toggle}
+                aria-expanded={!collapsed}
+                aria-label="Expand sidebar"
+                title="Expand sidebar"
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-[rgb(var(--org-sidebar-muted,212_212_212))] transition-colors hover:bg-navy-700 hover:text-[rgb(var(--org-sidebar-fg,255_255_255))] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+              >
+                <ToggleIcon size={16} aria-hidden="true" />
+              </button>
+            </>
           ) : (
-            <Brand tone="dark" tagline={false} className="min-w-0 flex-1 px-1" logoUrl={org?.logoUrl} />
-          )}
-            <button
-              type="button"
-              onClick={toggle}
-              aria-expanded={!collapsed}
-              aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-              title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-[rgb(var(--org-sidebar-muted,212_212_212))] transition-colors hover:bg-navy-700 hover:text-[rgb(var(--org-sidebar-fg,255_255_255))] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
-            >
-              <ToggleIcon size={16} aria-hidden="true" />
-            </button>
-          </div>
-          {collapsed ? null : (
-            <div className="flex items-center gap-2 px-1">
-              <p className="text-[10px] font-semibold uppercase tracking-[2px] text-[rgb(var(--org-sidebar-muted,163_163_163))]">
-                by
-              </p>
-              <Image
-                src="/branding/smartline-logo.svg"
-                alt="Smartline Publishers"
-                width={1793}
-                height={814}
-                className="h-[22px] w-auto"
-                priority={false}
-              />
-            </div>
+            <>
+              <div className="flex w-full items-center justify-between gap-2">
+                <Brand tone="dark" tagline={false} className="min-w-0 flex-1 px-1" logoUrl={org?.logoUrl} />
+                <button
+                  type="button"
+                  onClick={toggle}
+                  aria-expanded={!collapsed}
+                  aria-label="Collapse sidebar"
+                  title="Collapse sidebar"
+                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-[rgb(var(--org-sidebar-muted,212_212_212))] transition-colors hover:bg-navy-700 hover:text-[rgb(var(--org-sidebar-fg,255_255_255))] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+                >
+                  <ToggleIcon size={16} aria-hidden="true" />
+                </button>
+              </div>
+              <div className="flex items-center gap-2 px-1">
+                <p className="text-[10px] font-semibold uppercase tracking-[2px] text-[rgb(var(--org-sidebar-muted,163_163_163))]">
+                  by
+                </p>
+                <Image
+                  src="/branding/smartline-logo.svg"
+                  alt="Smartline Publishers"
+                  width={1793}
+                  height={814}
+                  className="h-[22px] w-auto"
+                  priority={false}
+                />
+              </div>
+            </>
           )}
         </div>
 
@@ -442,53 +414,82 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             /* Collapsed rail: every destination visible as its own icon button,
                grouped with dividers — nothing hidden inside collapsed sections. */
             <>
-              <ul className="flex flex-col gap-[5px]">
-                {NAV_SECTIONS.filter((s) => !s.children).map((section) => (
-                  <li key={section.id}>
-                    <RailLink href={section.href} label={section.label} icon={section.icon} />
-                  </li>
-                ))}
-              </ul>
-              {NAV_SECTIONS.filter((s) => s.children).map((section) => {
-                const kids = visibleChildren(section, user?.roles);
-                if (kids.length === 0) return null;
-                return (
-                  <div key={section.id}>
-                    <div aria-hidden="true" className="mx-2 mb-[5px] mt-[5px] h-px bg-white/10" />
-                    <span className="sr-only">{section.label}</span>
-                    <ul className="flex flex-col gap-[5px]">
-                      {kids.map((kid) => (
-                        <li key={kid.href}>
-                          <RailLink href={kid.href} label={kid.label} icon={kid.icon} />
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                );
-              })}
+              {useSimpleNav ? (
+                // Simplified flat navigation when fewer than 5 accessible items
+                <ul className="flex flex-col gap-[5px]">
+                  {allAccessibleItems.map((item) => (
+                    <li key={item.href}>
+                      <RailLink href={item.href} label={item.label} icon={item.icon} />
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <>
+                  <ul className="flex flex-col gap-[5px]">
+                    {sections.filter((s) => !s.children).map((section) => (
+                      <li key={section.id}>
+                        <RailLink href={section.href} label={section.label} icon={section.icon} />
+                      </li>
+                    ))}
+                  </ul>
+                  {sections.filter((s) => s.children).map((section) => {
+                    const kids = visibleChildren(section, permissions);
+                    if (kids.length === 0) return null;
+                    return (
+                      <div key={section.id}>
+                        <div aria-hidden="true" className="mx-2 mb-[5px] mt-[5px] h-px bg-white/10" />
+                        <span className="sr-only">{section.label}</span>
+                        <ul className="flex flex-col gap-[5px]">
+                          {kids.map((kid) => (
+                            <li key={kid.href}>
+                              <RailLink href={kid.href} label={kid.label} icon={kid.icon} />
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    );
+                  })}
+                </>
+              )}
             </>
           ) : (
             <ul className="flex flex-col gap-[5px]">
-              {NAV_SECTIONS.map((section) =>
-                section.children ? (
-                  <li key={section.id}>
-                    <SidebarGroup
-                      section={section}
-                      open={!!openMap[section.id]}
-                      onToggle={() => toggleSection(section.id)}
-                    />
-                  </li>
-                ) : (
-                  <li key={section.id}>
+              {useSimpleNav ? (
+                // Simplified flat navigation when fewer than 5 accessible items
+                allAccessibleItems.map((item) => (
+                  <li key={item.href}>
                     <SidebarLink
-                      href={section.href}
-                      label={section.label}
-                      icon={section.icon}
-                      active={isRouteActive(pathname, section.href)}
+                      href={item.href}
+                      label={item.label}
+                      icon={item.icon}
+                      active={isRouteActive(pathname, item.href)}
                       collapsed={collapsed}
                     />
                   </li>
-                ),
+                ))
+              ) : (
+                // Standard accordion navigation
+                sections.map((section) =>
+                  section.children ? (
+                    <li key={section.id}>
+                      <SidebarGroup
+                        section={section}
+                        open={!!openMap[section.id]}
+                        onToggle={() => toggleSection(section.id)}
+                      />
+                    </li>
+                  ) : (
+                    <li key={section.id}>
+                      <SidebarLink
+                        href={section.href}
+                        label={section.label}
+                        icon={section.icon}
+                        active={isRouteActive(pathname, section.href)}
+                        collapsed={collapsed}
+                      />
+                    </li>
+                  ),
+                )
               )}
             </ul>
           )}
@@ -506,15 +507,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </div>
       </aside>
 
-      {/* Right column: fixed app bar, section tabs, independently scrolling main. */}
+      {/* Right column: fixed app bar and independently scrolling main. */}
       <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+        <MobileHeader />
         <TopBar />
-        <SectionTabs />
         <main
           id="main-content"
           className="shell-scroll min-h-0 flex-1 overflow-y-auto overscroll-none overflow-x-hidden"
         >
-          <div className="mx-auto max-w-[1500px] px-[15px] pb-28 pt-[18px] md:px-7 md:py-[26px]">
+          <div className="mx-auto max-w-[1500px] px-4 pb-[calc(8rem+env(safe-area-inset-bottom))] pt-4 md:px-7 md:py-[26px] md:pb-[26px]">
             {children}
           </div>
         </main>

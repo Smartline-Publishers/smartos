@@ -7,7 +7,7 @@ export function ActivityFeed({ items }: { items: ActivityItem[] }) {
   return (
     <section
       aria-label="Recent activity"
-      className="flex min-w-0 flex-col rounded-xl border border-slate-200/90 bg-white p-5 shadow-[0_1px_2px_rgb(15_23_42/0.05)] dark:border-neutral-800 dark:bg-neutral-900 dark:shadow-none"
+      className="flex min-w-0 flex-col rounded-2xl border border-slate-200/90 bg-white p-4 shadow-[0_1px_2px_rgb(15_23_42/0.05)] dark:border-neutral-800 dark:bg-neutral-900 dark:shadow-none sm:p-5 md:rounded-xl"
     >
       <h2 className="mb-1 text-[15px] font-bold text-slate-900 dark:text-neutral-100">Recent activity</h2>
       {items.length === 0 ? (

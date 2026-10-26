@@ -60,10 +60,6 @@ function writeCachedTheme(orgId: string, theme: OrgTheme | null | undefined): vo
   }
 }
 
-function isAdmin(roles: string[] | undefined): boolean {
-  return !!roles?.some((r) => r === "ORG_ADMIN" || r === "PLATFORM_ADMIN");
-}
-
 export function OrgProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const [org, setOrg] = useState<CurrentOrganization | null>(null);
@@ -93,14 +89,11 @@ export function OrgProvider({ children }: { children: ReactNode }) {
       setProfile(nextProfile);
       writeCachedTheme(nextOrg.id, nextOrg.theme);
       applyOrgTheme(nextOrg.theme);
-      if (isAdmin(user.roles)) {
-        try {
-          setOnboarding(await getOnboarding());
-        } catch (e) {
-          if (!(e instanceof ApiError && (e.status === 401 || e.status === 403))) throw e;
-          setOnboarding(null);
-        }
-      } else {
+      // Every user has their own independent onboarding checklist; fetch it for all roles.
+      try {
+        setOnboarding(await getOnboarding());
+      } catch (e) {
+        if (!(e instanceof ApiError && (e.status === 401 || e.status === 403))) throw e;
         setOnboarding(null);
       }
     } finally {

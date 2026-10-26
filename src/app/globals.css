@@ -22,6 +22,8 @@ html.dark {
 html {
   scroll-behavior: smooth;
   height: 100%;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }
 
 body {
@@ -30,9 +32,11 @@ body {
   font-size: 14px;
   line-height: 1.45;
   height: 100%;
+  min-height: 100dvh;
   /* App shell owns scrolling (sidebar nav + main content scroll
      independently); avoid chained page-level scroll interference. */
   overscroll-behavior-y: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
 ::selection {
@@ -66,6 +70,12 @@ body {
 .shell-scroll::-webkit-scrollbar-thumb:hover {
   background-color: rgb(148 163 184);
 }
+.no-scrollbar {
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
 html.dark .shell-scroll {
   scrollbar-color: rgb(64 64 64) transparent;
 }
@@ -91,8 +101,8 @@ html.dark .shell-scroll::-webkit-scrollbar-thumb:hover {
   }
 }
 
-/* Mobile More sheet + backdrop entrances (durations neutralized above
-   under prefers-reduced-motion). */
+/* Mobile menu sheet + FAB entrances (durations neutralized above under
+   prefers-reduced-motion). */
 @keyframes fade-in {
   from {
     opacity: 0;
@@ -110,5 +120,16 @@ html.dark .shell-scroll::-webkit-scrollbar-thumb:hover {
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+@keyframes fab-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
   }
 }

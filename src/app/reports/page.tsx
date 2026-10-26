@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { ProtectedRoute } from "@/components/layout/ProtectedRoute";
 import { AppShell } from "@/components/layout/AppShell";
+import { RouteGuard } from "@/components/layout/RoleGuard";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
@@ -84,7 +85,7 @@ export default function ReportsPage() {
   return (
     <ProtectedRoute>
       <AppShell>
-        <div className="flex flex-col gap-4">
+        <RouteGuard><div className="flex flex-col gap-4">
           <PageHeader
             title="Reports"
             description="Sales, royalty liability and editorial throughput, computed live from system records."
@@ -237,6 +238,7 @@ export default function ReportsPage() {
             </>
           )}
         </div>
+      </RouteGuard>
       </AppShell>
     </ProtectedRoute>
   );

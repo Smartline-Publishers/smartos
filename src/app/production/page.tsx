@@ -3,10 +3,12 @@
 import { useCallback, useEffect, useState } from "react";
 import { ProtectedRoute } from "@/components/layout/ProtectedRoute";
 import { AppShell } from "@/components/layout/AppShell";
+import { RouteGuard } from "@/components/layout/RoleGuard";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
+import { MobileFab } from "@/components/ui/MobileFab";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Spinner } from "@/components/ui/Spinner";
 import { JobForm } from "@/features/production/JobForm";
@@ -24,6 +26,7 @@ import {
 } from "@/features/production/api";
 import { listBooks } from "@/features/books/api";
 import { listWarehouses } from "@/features/inventory/api";
+import { CaretDown } from "@phosphor-icons/react";
 import type { Book } from "@/types/book";
 import type { Warehouse } from "@/types/inventory";
 import {
@@ -104,16 +107,18 @@ export default function ProductionPage() {
   return (
     <ProtectedRoute>
       <AppShell>
-        <div className="flex flex-col gap-4">
+        <RouteGuard><div className="flex flex-col gap-4">
           <PageHeader
             title="Production"
             description="Print jobs from planning to completion, with print runs posted into stock."
+            hideActionsOnMobile
             actions={
               <Button onClick={() => setJobModalOpen(true)}>
                 New print job
               </Button>
             }
           />
+          <MobileFab label="New print job" onClick={() => setJobModalOpen(true)} />
           {actionError ? (
             <p role="alert" className="rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-300">
               {actionError}
@@ -185,6 +190,7 @@ export default function ProductionPage() {
             </div>
           )}
         </div>
+      </RouteGuard>
       </AppShell>
     </ProtectedRoute>
   );
@@ -249,19 +255,27 @@ function JobCard({
                   </span>
                   {editable && warehouses.length > 0 ? (
                     <>
-                      <select
-                        aria-label={`Warehouse for posting run of ${run.quantity} copies`}
-                        value={postWh}
-                        onChange={(e) => onPostWh(e.target.value)}
-                        disabled={busy}
-                        className="h-8 max-w-32 rounded-md border border-slate-300 bg-white px-1 text-xs text-ink dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-100"
-                      >
-                        {warehouses.map((w) => (
-                          <option key={w.id} value={w.id}>
-                            {w.name}
-                          </option>
-                        ))}
-                      </select>
+                      <span className="relative inline-flex items-center">
+                        <select
+                          aria-label={`Warehouse for posting run of ${run.quantity} copies`}
+                          value={postWh}
+                          onChange={(e) => onPostWh(e.target.value)}
+                          disabled={busy}
+                          className="h-9 max-w-36 appearance-none rounded-lg border border-slate-300 bg-white py-1 pl-2.5 pr-7 text-xs font-medium text-ink shadow-[0_1px_2px_rgb(15_23_42/0.04)] transition-colors hover:border-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 disabled:cursor-not-allowed disabled:bg-slate-50 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-100 dark:hover:border-neutral-500"
+                        >
+                          {warehouses.map((w) => (
+                            <option key={w.id} value={w.id}>
+                              {w.name}
+                            </option>
+                          ))}
+                        </select>
+                        <CaretDown
+                          size={13}
+                          weight="bold"
+                          aria-hidden="true"
+                          className="pointer-events-none absolute right-2 text-slate-500 dark:text-neutral-400"
+                        />
+                      </span>
                       <Button
                         size="sm"
                         disabled={busy || job.status !== "IN_PROGRESS"}

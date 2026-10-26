@@ -1,13 +1,11 @@
-const CACHE_NAME = 'smartos-v1';
-const STATIC_CACHE = 'smartos-static-v1';
-const API_CACHE = 'smartos-api-v1';
+const CACHE_NAME = 'smartos-v2';
+const STATIC_CACHE = 'smartos-static-v2';
 
-// Core app shell assets to precache
+// Core app shell assets to precache (same-origin only).
 const STATIC_ASSETS = [
   '/',
   '/dashboard',
   '/books',
-  '/books/',
   '/manuscripts',
   '/inventory',
   '/tasks',
@@ -21,6 +19,8 @@ const STATIC_ASSETS = [
   '/settings',
   '/login',
   '/register',
+  '/forgot-password',
+  '/reset-password',
   '/icons/icon-16.png',
   '/icons/icon-32.png',
   '/icons/icon-48.png',
@@ -38,17 +38,6 @@ const STATIC_ASSETS = [
   '/manifest.json'
 ];
 
-// API endpoints to cache with stale-while-revalidate
-const CACHEABLE_API = [
-  '/api/v1/dashboard/summary',
-  '/api/v1/books?page=0&size=10',
-  '/api/v1/contributors?page=0&size=10',
-  '/api/v1/inventory/levels',
-  '/api/v1/inventory/warehouses',
-  '/api/v1/production/jobs?page=0&size=10',
-  '/api/v1/organizations/current'
-];
-
 // Install: precache static assets
 self.addEventListener('install', (event) => {
   event.waitUntil(
@@ -60,62 +49,61 @@ self.addEventListener('install', (event) => {
   );
 });
 
-// Activate: clean up old caches
+// Activate: remove every previous cache version, including the old API cache.
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((cacheNames) => {
       return Promise.all(
-        cacheNames.filter((cacheName) => {
-          return cacheName !== CACHE_NAME &&
-                 cacheName !== STATIC_CACHE &&
-                 cacheName !== API_CACHE;
-        }).map((cacheName) => caches.delete(cacheName))
+        cacheNames
+          .filter((name) => name !== STATIC_CACHE && name !== CACHE_NAME)
+          .map((name) => caches.delete(name))
       );
     }).then(() => self.clients.claim())
   );
 });
 
-// Fetch: serve from cache, fallback to network
+// Fetch: never intercept API calls. Authentication responses must always come
+// from the network: stale-while-revalidate here could serve an old 401/403 (or
+// an old user's data) and made login appear broken. Cross-origin requests are
+// likewise left entirely to the browser.
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
 
-  // Handle API requests with stale-while-revalidate
+  if (url.origin !== self.location.origin) {
+    return;
+  }
   if (url.pathname.startsWith('/api/')) {
-    event.respondWith(
-      caches.open(API_CACHE).then((cache) => {
-        return cache.match(event.request).then((cachedResponse) => {
-          const fetchPromise = fetch(event.request).then((networkResponse) => {
-            if (networkResponse.ok) {
-              cache.put(event.request, networkResponse.clone());
-            }
-            return networkResponse;
-          });
-          return cachedResponse || fetchPromise;
-        });
-      })
-    );
+    return;
+  }
+  if (event.request.method !== 'GET') {
     return;
   }
 
-  // Handle navigation requests (HTML pages) - serve from cache, fallback to network
+  // Navigations: network first so a new deploy is visible immediately, with
+  // the cached shell as an offline fallback.
   if (event.request.mode === 'navigate') {
     event.respondWith(
-      caches.match(event.request).then((cachedResponse) => {
-        return cachedResponse || fetch(event.request).catch(() => {
-          return caches.match('/');
-        });
-      })
+      fetch(event.request)
+        .then((response) => {
+          if (response.ok) {
+            const clone = response.clone();
+            caches.open(STATIC_CACHE).then((cache) => cache.put(event.request, clone));
+          }
+          return response;
+        })
+        .catch(() => caches.match(event.request).then((cached) => cached || caches.match('/')))
     );
     return;
   }
 
-  // Handle static assets - cache first, then network
+  // Static assets: cache first, then network.
   event.respondWith(
     caches.match(event.request).then((cachedResponse) => {
       return cachedResponse || fetch(event.request).then((networkResponse) => {
+        const responseClone = networkResponse.clone();
         if (networkResponse.ok && STATIC_ASSETS.includes(url.pathname)) {
           caches.open(STATIC_CACHE).then((cache) => {
-            cache.put(event.request, networkResponse.clone());
+            cache.put(event.request, responseClone);
           });
         }
         return networkResponse;

@@ -15,9 +15,9 @@ export function ProtectedRoute({ children }: { children: ReactNode }) {
 
   if (loading) {
     return (
-      <p className="p-6">
+      <div className="flex min-h-dvh items-center justify-center p-6">
         <Spinner label="Checking session…" />
-      </p>
+      </div>
     );
   }
   if (!user) return null;

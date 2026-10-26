@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { ProtectedRoute } from "@/components/layout/ProtectedRoute";
 import { AppShell } from "@/components/layout/AppShell";
+import { RouteGuard } from "@/components/layout/RoleGuard";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card } from "@/components/ui/Card";
 import { Select } from "@/components/ui/Select";
@@ -12,6 +13,8 @@ import { Modal } from "@/components/ui/Modal";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Spinner } from "@/components/ui/Spinner";
 import { Pagination } from "@/components/ui/Pagination";
+import { MobileFab } from "@/components/ui/MobileFab";
+import { ArrowsDownUp, ArrowsLeftRight, Warehouse as WarehouseIcon } from "@phosphor-icons/react";
 import { WarehouseForm } from "@/features/inventory/WarehouseForm";
 import { MovementForm } from "@/features/inventory/MovementForm";
 import { TransferForm } from "@/features/inventory/TransferForm";
@@ -109,10 +112,11 @@ export default function InventoryPage() {
   return (
     <ProtectedRoute>
       <AppShell>
-        <div className="flex flex-col gap-4">
+        <RouteGuard><div className="flex flex-col gap-4">
           <PageHeader
             title="Inventory"
             description="Finished-book stock across warehouses, derived from an immutable movement ledger."
+            hideActionsOnMobile
             actions={
               <>
                 <Button variant="ghost" onClick={() => setTransferOpen(true)}>
@@ -126,6 +130,26 @@ export default function InventoryPage() {
                 </Button>
               </>
             }
+          />
+          <MobileFab
+            menuLabel="Inventory actions"
+            actions={[
+              {
+                label: "New warehouse",
+                icon: WarehouseIcon,
+                onClick: () => setWarehouseOpen(true),
+              },
+              {
+                label: "Record movement",
+                icon: ArrowsDownUp,
+                onClick: () => setMovementOpen(true),
+              },
+              {
+                label: "Transfer stock",
+                icon: ArrowsLeftRight,
+                onClick: () => setTransferOpen(true),
+              },
+            ]}
           />
           {actionError ? (
             <p role="alert" className="rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-300">
@@ -395,6 +419,7 @@ export default function InventoryPage() {
             </>
           )}
         </div>
+      </RouteGuard>
       </AppShell>
     </ProtectedRoute>
   );

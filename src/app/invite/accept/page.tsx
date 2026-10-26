@@ -9,6 +9,7 @@ import { Card } from "@/components/ui/Card";
 import { Brand } from "@/components/layout/Brand";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
+import { Alert } from "@/components/ui/Alert";
 import { Spinner } from "@/components/ui/Spinner";
 import { useAuth } from "@/hooks/use-auth";
 import { ApiError } from "@/lib/api-client";
@@ -53,11 +54,15 @@ function InviteAcceptContent() {
   };
 
   return (
-    <main id="main-content" className="mx-auto max-w-md py-10">
+    <main
+      id="main-content"
+      className="mx-auto flex min-h-dvh w-full max-w-md flex-col justify-center px-4 py-8 sm:py-10"
+      style={{ paddingBottom: "max(2rem, env(safe-area-inset-bottom))" }}
+    >
       <h1 className="sr-only">Accept organization invitation</h1>
       <Brand tone="light" className="mb-6 text-center" />
       <Card title="You've been invited">
-        <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-3" aria-label="Accept invitation form">
+        <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4" aria-label="Accept invitation form">
           <Input
             label="Invitation token"
             required
@@ -81,11 +86,7 @@ function InviteAcceptContent() {
             error={errors.password?.message}
             {...register("password")}
           />
-          {serverError ? (
-              <p role="alert" className="text-sm text-red-600 dark:text-red-400">
-              {serverError}
-            </p>
-          ) : null}
+          {serverError ? <Alert tone="error">{serverError}</Alert> : null}
           <Button type="submit" disabled={isSubmitting}>
             {isSubmitting ? "Joining…" : "Accept invitation"}
           </Button>

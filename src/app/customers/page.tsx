@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { ProtectedRoute } from "@/components/layout/ProtectedRoute";
 import { AppShell } from "@/components/layout/AppShell";
+import { RouteGuard } from "@/components/layout/RoleGuard";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
@@ -12,6 +13,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { Spinner } from "@/components/ui/Spinner";
 import { Pagination } from "@/components/ui/Pagination";
 import { Modal } from "@/components/ui/Modal";
+import { MobileFab } from "@/components/ui/MobileFab";
 import { CustomerForm } from "@/features/sales/CustomerForm";
 import {
   createCustomer,
@@ -71,17 +73,18 @@ export default function CustomersPage() {
   return (
     <ProtectedRoute>
       <AppShell>
-        <div className="flex flex-col gap-4">
+        <RouteGuard><div className="flex flex-col gap-4">
           <PageHeader
             title="Customers"
             description="Schools, bookshops, distributors and direct buyers."
+            hideActionsOnMobile
             actions={
               <Button onClick={() => setCreateOpen(true)}>
                 New customer
               </Button>
             }
           />
-          {actionError ? (
+          <MobileFab label="New customer" onClick={() => setCreateOpen(true)} />          {actionError ? (
             <p role="alert" className="rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-300">
               {actionError}
             </p>
@@ -179,6 +182,7 @@ export default function CustomersPage() {
             </>
           )}
         </div>
+      </RouteGuard>
       </AppShell>
     </ProtectedRoute>
   );

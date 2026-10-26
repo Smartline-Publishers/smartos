@@ -1,9 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { ProtectedRoute } from "@/components/layout/ProtectedRoute";
 import { AppShell } from "@/components/layout/AppShell";
+import { RouteGuard } from "@/components/layout/RoleGuard";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
@@ -13,6 +14,7 @@ import { Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Spinner } from "@/components/ui/Spinner";
 import { Pagination } from "@/components/ui/Pagination";
+import { MobileFab } from "@/components/ui/MobileFab";
 import {
   CreateOrderSchema,
   cancelOrder,
@@ -50,6 +52,10 @@ export default function OrdersPage() {
   const [rows, setRows] = useState<OrderRow[]>([{ ...EMPTY_ROW }]);
   const [formError, setFormError] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
+  // On phones the form starts collapsed behind the floating action; desktop
+  // always shows it so the create flow is unchanged.
+  const [showForm, setShowForm] = useState(false);
+  const formRef = useRef<HTMLFormElement>(null);
   const params = query.toParams();
 
   const refresh = useCallback(async () => {
@@ -75,6 +81,15 @@ export default function OrdersPage() {
   useEffect(() => {
     void refresh();
   }, [refresh]);
+
+  useEffect(() => {
+    if (!showForm) return;
+    const frame = window.requestAnimationFrame(() => {
+      formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      formRef.current?.focus({ preventScroll: true });
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [showForm]);
 
   const runAction = useCallback(
     async (fn: () => Promise<unknown>, failure: string) => {
@@ -128,7 +143,7 @@ export default function OrdersPage() {
   return (
     <ProtectedRoute>
       <AppShell>
-        <div className="flex flex-col gap-4">
+        <RouteGuard><div className="flex flex-col gap-4">
           <PageHeader
             title="Orders"
             description="Customer orders from draft to fulfilment. Totals are computed by the server."
@@ -138,8 +153,29 @@ export default function OrdersPage() {
               {actionError}
             </p>
           ) : null}
-          <Card title="New order">
-            <form onSubmit={onCreate} className="flex flex-col gap-3" aria-label="New order form">
+          <Card
+            title="New order"
+            className={showForm ? undefined : "hidden md:block"}
+            action={
+              showForm ? (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="md:hidden"
+                  onClick={() => setShowForm(false)}
+                >
+                  Close
+                </Button>
+              ) : undefined
+            }
+          >
+            <form
+              ref={formRef}
+              tabIndex={-1}
+              onSubmit={onCreate}
+              className="flex flex-col gap-3 outline-none"
+              aria-label="New order form"
+            >
               <div className="max-w-sm">
                 <Select
                   label="Customer"
@@ -294,7 +330,10 @@ export default function OrdersPage() {
               />
             </>
           )}
+
+          <MobileFab label="New order" onClick={() => setShowForm(true)} />
         </div>
+      </RouteGuard>
       </AppShell>
     </ProtectedRoute>
   );

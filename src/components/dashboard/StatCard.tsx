@@ -45,21 +45,21 @@ export function StatCard({
   return (
     <section
       aria-label={label}
-      className="flex min-w-0 flex-col gap-0.5 rounded-[13px] border border-line bg-white p-3 dark:border-neutral-800 dark:bg-neutral-900"
+      className="flex min-w-0 flex-col gap-0.5 rounded-2xl border border-line bg-white p-4 shadow-[0_1px_2px_rgb(15_23_42/0.04)] dark:border-neutral-800 dark:bg-neutral-900 dark:shadow-none md:rounded-[13px] md:p-3"
     >
       {CardIcon ? (
         <span
           aria-hidden="true"
           className={cn(
-            "flex h-8 w-8 items-center justify-center rounded-lg",
+            "flex h-9 w-9 items-center justify-center rounded-[10px] md:h-8 md:w-8 md:rounded-lg",
             iconTone ?? "bg-brand-50 text-brand-700 dark:bg-brand-950 dark:text-brand-300",
           )}
         >
-          <CardIcon size={16} aria-hidden="true" />
+          <CardIcon size={17} aria-hidden="true" />
         </span>
       ) : null}
-      <h2 className="truncate text-xs text-muted dark:text-neutral-400">{label}</h2>
-      <p className="text-[22px] font-extrabold tabular-nums leading-tight tracking-tight text-ink dark:text-neutral-100">
+      <h2 className="mt-1.5 truncate text-[13px] text-muted dark:text-neutral-400 md:mt-0 md:text-xs">{label}</h2>
+      <p className="text-[24px] font-extrabold tabular-nums leading-tight tracking-tight text-ink dark:text-neutral-100 md:text-[22px]">
         {value}
       </p>
       <div className="mt-auto flex items-end justify-between gap-2 pt-1">

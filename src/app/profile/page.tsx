@@ -10,10 +10,6 @@ import { useAuth } from "@/hooks/use-auth";
 import { useOrg } from "@/hooks/use-org";
 import { OnboardingChecklistCard } from "@/features/settings/OnboardingChecklistCard";
 
-function isAdmin(roles: string[] | undefined): boolean {
-  return !!roles?.some((r) => r === "ORG_ADMIN" || r === "PLATFORM_ADMIN");
-}
-
 export default function ProfilePage() {
   const { user } = useAuth();
   const { org, profile } = useOrg();
@@ -72,7 +68,7 @@ export default function ProfilePage() {
             </dl>
           </Card>
           <div id="checklist" className="scroll-mt-4">
-            <OnboardingChecklistCard isAdmin={isAdmin(user?.roles)} />
+            <OnboardingChecklistCard />
           </div>
         </div>
       </AppShell>

@@ -2,6 +2,23 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { SecuritySettings } from "@/features/settings/SecuritySettings";
 
+// SecuritySettings reads the caller's email and can end the session, so it
+// needs the auth context. The test only exercises 2FA/session behaviour.
+vi.mock("@/hooks/use-auth", () => ({
+  useAuth: () => ({
+    user: { id: "u1", email: "admin@acme.test", orgId: "o1", roles: ["ORG_ADMIN"] },
+    session: null,
+    permissions: [],
+    loading: false,
+    login: async () => ({ kind: "tokens", tokens: { accessToken: "", refreshToken: "" } }),
+    loginWithPasskey: async () => ({ kind: "tokens", tokens: { accessToken: "", refreshToken: "" } }),
+    loginWithTwoFactor: async () => {},
+    logout: () => {},
+    refreshSession: () => {},
+    reloadSession: async () => {},
+  }),
+}));
+
 function stubFetch(handler: (url: string, init?: RequestInit) => unknown) {
   vi.stubGlobal(
     "fetch",

@@ -18,9 +18,11 @@ const variants: Record<Variant, string> = {
 };
 
 const sizes: Record<Size, string> = {
-  sm: "h-8 px-2.5 text-xs",
-  md: "h-10 px-[13px] text-sm",
-  lg: "h-11 px-5 text-base",
+  // Mobile controls meet the 44px touch target; desktop keeps the compact
+  // enterprise density the rest of the shell is built around.
+  sm: "min-h-11 px-3 text-sm md:h-8 md:min-h-0 md:px-2.5 md:text-xs",
+  md: "min-h-11 px-4 text-sm md:h-10 md:min-h-0 md:px-[13px]",
+  lg: "min-h-12 px-5 text-base md:h-11 md:min-h-0",
 };
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
@@ -30,9 +32,10 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         ref={ref}
         type={type}
         className={cn(
-          "inline-flex items-center justify-center gap-2 rounded-lg border font-semibold",
-          "transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2",
-          "disabled:cursor-not-allowed disabled:opacity-50",
+          "inline-flex touch-manipulation select-none items-center justify-center gap-2 rounded-xl border font-semibold",
+          "transition-[background-color,border-color,color,transform,opacity] duration-150 active:scale-[0.985]",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2",
+          "disabled:cursor-not-allowed disabled:opacity-50 disabled:active:scale-100",
           variants[variant],
           sizes[size],
           className,

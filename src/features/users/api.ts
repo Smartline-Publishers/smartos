@@ -49,6 +49,37 @@ export async function createUser(input: CreateUserInput): Promise<OrgUser> {
   return res.data;
 }
 
+export const UpdateUserSchema = z.object({
+  fullName: z.string().min(1, "Name is required").max(200).optional(),
+  role: z
+    .enum([
+      "PLATFORM_ADMIN",
+      "ORG_ADMIN",
+      "EDITOR",
+      "DESIGNER",
+      "PRODUCTION",
+      "WAREHOUSE",
+      "SALES",
+      "FINANCE",
+      "AUTHOR",
+      "VIEWER",
+    ] as const satisfies readonly Role[])
+    .optional(),
+  active: z.boolean().optional(),
+});
+
+export type UpdateUserInput = z.infer<typeof UpdateUserSchema>;
+
+/** Update a user's details, including their role. */
+export async function updateUser(id: string, input: UpdateUserInput): Promise<OrgUser> {
+  const parsed = UpdateUserSchema.parse(input);
+  const res = await api.patch<ApiEnvelope<OrgUser>>(
+    `/users/${encodeURIComponent(id)}`,
+    parsed,
+  );
+  return res.data;
+}
+
 export async function deleteUser(id: string): Promise<void> {
   await api.del<void>(`/users/${encodeURIComponent(id)}`);
 }

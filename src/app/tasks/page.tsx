@@ -3,12 +3,14 @@
 import { useCallback, useEffect, useState } from "react";
 import { ProtectedRoute } from "@/components/layout/ProtectedRoute";
 import { AppShell } from "@/components/layout/AppShell";
+import { RouteGuard } from "@/components/layout/RoleGuard";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
+import { MobileFab } from "@/components/ui/MobileFab";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Spinner } from "@/components/ui/Spinner";
 import { Pagination } from "@/components/ui/Pagination";
@@ -87,17 +89,18 @@ export default function TasksPage() {
   return (
     <ProtectedRoute>
       <AppShell>
-        <div className="flex flex-col gap-4">
+        <RouteGuard><div className="flex flex-col gap-4">
           <PageHeader
             title="Tasks"
             description="Editorial and operational assignments with owners and due dates."
+            hideActionsOnMobile
             actions={
               <Button onClick={() => setCreateOpen(true)}>
                 New task
               </Button>
             }
           />
-          {actionError ? (
+          <MobileFab label="New task" onClick={() => setCreateOpen(true)} />          {actionError ? (
             <p role="alert" className="rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-300">
               {actionError}
             </p>
@@ -212,6 +215,7 @@ export default function TasksPage() {
             </>
           )}
         </div>
+      </RouteGuard>
       </AppShell>
     </ProtectedRoute>
   );

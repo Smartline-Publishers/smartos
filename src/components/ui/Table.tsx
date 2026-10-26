@@ -15,7 +15,12 @@ export interface TableProps<T> {
 
 export function Table<T>({ columns, rows, getRowKey, caption }: TableProps<T>) {
   return (
-    <div className="shell-scroll overflow-x-auto rounded-xl border border-line bg-white dark:border-neutral-800 dark:bg-neutral-900">
+    <div
+      role="region"
+      aria-label={caption ?? "Data table"}
+      tabIndex={0}
+      className="shell-scroll overflow-x-auto overscroll-x-contain rounded-2xl border border-line bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 dark:border-neutral-800 dark:bg-neutral-900 md:rounded-xl"
+    >
       <table className="w-full border-collapse text-left">
         {caption ? <caption className="sr-only">{caption}</caption> : null}
         <thead className="bg-[#fafbfd] dark:bg-neutral-800/60">
@@ -24,7 +29,7 @@ export function Table<T>({ columns, rows, getRowKey, caption }: TableProps<T>) {
               <th
                 key={c.key}
                 scope="col"
-                className="px-[14px] py-3 text-[11px] font-semibold uppercase tracking-[0.5px] text-muted dark:text-neutral-400"
+                className="whitespace-nowrap px-3.5 py-3 text-[10.5px] font-semibold uppercase tracking-[0.5px] text-muted dark:text-neutral-400 md:px-[14px]"
               >
                 {c.header}
               </th>
@@ -35,7 +40,7 @@ export function Table<T>({ columns, rows, getRowKey, caption }: TableProps<T>) {
           {rows.map((row, i) => (
             <tr key={getRowKey(row, i)} className="border-t border-[#edf1f6] dark:border-neutral-800">
               {columns.map((c) => (
-                <td key={c.key} className="px-[14px] py-3 align-middle text-xs text-ink dark:text-neutral-200">
+                <td key={c.key} className="px-3.5 py-3.5 align-middle text-[13px] text-ink dark:text-neutral-200 md:px-[14px] md:py-3 md:text-xs">
                   {c.render(row)}
                 </td>
               ))}

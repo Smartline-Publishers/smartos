@@ -124,7 +124,26 @@ function sharedRefresh(): Promise<string | null> {
   return inflightRefresh;
 }
 
+/**
+ * Endpoints that must never receive a stale Bearer token. Sending one to
+ * /auth/login (for example) used to make a perfectly valid sign-in look
+ * broken when localStorage still held an old token.
+ */
+const PUBLIC_AUTH_PATHS = new Set([
+  "/auth/login",
+  "/auth/2fa/verify",
+  "/auth/refresh",
+  "/auth/logout",
+  "/auth/register-organization",
+  "/auth/password/forgot",
+  "/auth/password/reset",
+  "/auth/password/reset/validate",
+  "/auth/passkeys/options",
+  "/auth/passkeys/verify",
+]);
+
 async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
+  const isPublicAuth = PUBLIC_AUTH_PATHS.has(path.split("?")[0]);
   const doFetch = async (token: string | null): Promise<Response> => {
     const headers = new Headers(init.headers);
     // Multipart uploads carry their own content type (with boundary);
@@ -136,8 +155,8 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
     return fetch(`${baseUrl()}${path}`, { ...init, headers });
   };
 
-  let res = await doFetch(getAccessToken());
-  if (res.status === 401) {
+  let res = await doFetch(isPublicAuth ? null : getAccessToken());
+  if (res.status === 401 && !isPublicAuth) {
     // Attempt exactly one (shared) silent refresh, then retry once.
     const next = await sharedRefresh();
     if (next) {
@@ -154,6 +173,14 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   }
   if (!res.ok) await parseError(res);
   if (res.status === 204) return undefined as T;
+  // Read the body once as text so an empty 200 (some endpoints return no
+  // content) is tolerated instead of throwing on res.json(). Fall back to
+  // json() for minimal fetch polyfills/mocks that only implement it.
+  if (typeof res.text === "function") {
+    const text = await res.text();
+    if (!text) return undefined as T;
+    return JSON.parse(text) as T;
+  }
   return (await res.json()) as T;
 }
 

@@ -7,30 +7,25 @@ import { CreateUserSchema, type CreateUserInput } from "@/features/users/api";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { Button } from "@/components/ui/Button";
-
-const ROLE_OPTIONS = [
-  { value: "VIEWER", label: "Viewer" },
-  { value: "AUTHOR", label: "Author" },
-  { value: "EDITOR", label: "Editor" },
-  { value: "DESIGNER", label: "Designer" },
-  { value: "PRODUCTION", label: "Production" },
-  { value: "WAREHOUSE", label: "Warehouse" },
-  { value: "SALES", label: "Sales" },
-  { value: "FINANCE", label: "Finance" },
-  { value: "ORG_ADMIN", label: "Org admin" },
-];
+import { roleOptions } from "@/features/users/UserEditForm";
+import type { Role } from "@/types/auth";
 
 export function UserForm({
+  assignableRoles,
   onSubmit,
   submitting,
   onCancel,
   onDirtyChange,
 }: {
+  /** Roles the current user may assign, as reported by the server. */
+  assignableRoles: Role[] | undefined;
   onSubmit: (values: CreateUserInput) => Promise<void> | void;
   submitting?: boolean;
   onCancel?: () => void;
   onDirtyChange?: (dirty: boolean) => void;
 }) {
+  const options = roleOptions(assignableRoles);
+
   const {
     register,
     handleSubmit,
@@ -64,8 +59,9 @@ export function UserForm({
         />
         <Select
           label="Role"
+          hint="Determines what this person can see and do."
           error={errors.role?.message}
-          options={ROLE_OPTIONS}
+          options={options}
           {...register("role")}
         />
       </div>

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { ProtectedRoute } from "@/components/layout/ProtectedRoute";
 import { AppShell } from "@/components/layout/AppShell";
+import { RouteGuard } from "@/components/layout/RoleGuard";
 import { Table } from "@/components/ui/Table";
 import { Input } from "@/components/ui/Input";
 import { Pagination } from "@/components/ui/Pagination";
@@ -11,6 +12,7 @@ import { Spinner } from "@/components/ui/Spinner";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
+import { MobileFab } from "@/components/ui/MobileFab";
 import { ContributorForm } from "@/features/contributors/ContributorForm";
 import { createContributor, listContributors, type ContributorInput } from "@/features/contributors/api";
 import { ApiError } from "@/lib/api-client";
@@ -62,17 +64,24 @@ export default function ContributorsPage() {
   return (
     <ProtectedRoute>
       <AppShell>
-        <div className="flex flex-col gap-4">
+        <RouteGuard><div className="flex flex-col gap-4">
           <PageHeader
             title="Contributors"
             description="Authors, editors, illustrators and translators linked to your titles."
+            hideActionsOnMobile
             actions={
               <Button onClick={() => { setCreateError(null); setCreateOpen(true); }}>
                 New contributor
               </Button>
             }
           />
-          <Input
+          <MobileFab
+            label="New contributor"
+            onClick={() => {
+              setCreateError(null);
+              setCreateOpen(true);
+            }}
+          />          <Input
             label="Search"
             placeholder="Name or email…"
             value={query.search}
@@ -120,6 +129,7 @@ export default function ContributorsPage() {
             </>
           )}
         </div>
+      </RouteGuard>
       </AppShell>
     </ProtectedRoute>
   );

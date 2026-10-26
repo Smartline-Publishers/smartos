@@ -9,6 +9,8 @@ import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Spinner } from "@/components/ui/Spinner";
+import { MobileFab } from "@/components/ui/MobileFab";
+import { PencilSimple } from "@phosphor-icons/react";
 import { BookForm } from "@/features/books/BookForm";
 import { getBook, updateBook, type CreateBookInput } from "@/features/books/api";
 import { ApiError } from "@/lib/api-client";
@@ -76,10 +78,23 @@ export default function BookDetailPage({
             <div className="flex flex-wrap items-center gap-3">
               <h1 className="min-w-0 flex-1 text-xl font-bold text-ink dark:text-neutral-100">{book.title}</h1>
               <Badge status={book.status} />
-              <Button size="sm" variant="ghost" onClick={() => { setSaveError(null); setEditOpen(true); }}>
+              <Button
+                size="sm"
+                variant="ghost"
+                className="hidden md:inline-flex"
+                onClick={() => { setSaveError(null); setEditOpen(true); }}
+              >
                 Edit
               </Button>
             </div>
+            <MobileFab
+              label="Edit book"
+              icon={PencilSimple}
+              onClick={() => {
+                setSaveError(null);
+                setEditOpen(true);
+              }}
+            />
             <Modal
               open={editOpen}
               title="Edit book"

@@ -1,7 +1,11 @@
 import { z } from "zod";
 import { api } from "@/lib/api-client";
-import { getRefreshToken } from "@/lib/auth";
+import { getRefreshToken, clearTokens, setTokens } from "@/lib/auth";
 import { AVATAR_MAX_SIDE, prepareImageUpload } from "@/lib/image";
+import type {
+  PasskeyRegistrationOptions,
+  RegistrationResult,
+} from "@/lib/webauthn";
 import type { ApiEnvelope } from "@/types/api";
 import type { Role } from "@/types/auth";
 
@@ -65,14 +69,83 @@ export async function uploadAvatar(file: File): Promise<Profile> {
 
 export const ChangePasswordSchema = z.object({
   currentPassword: z.string().min(1, "Current password is required"),
-  newPassword: z.string().min(8, "At least 8 characters"),
+  newPassword: z.string().min(10, "At least 10 characters"),
+  confirmPassword: z.string().optional(),
+  keepCurrentSession: z.boolean().optional(),
 });
 
 export type ChangePasswordInput = z.infer<typeof ChangePasswordSchema>;
 
-export async function changePassword(input: ChangePasswordInput): Promise<void> {
+export interface ChangePasswordResult {
+  accessToken?: string;
+  refreshToken?: string;
+}
+
+/**
+ * Changes the password and rotates the caller's token pair when they chose to
+ * stay signed in. Other sessions are revoked server-side either way.
+ */
+export async function changePassword(input: ChangePasswordInput): Promise<ChangePasswordResult> {
   const parsed = ChangePasswordSchema.parse(input);
-  await api.post<void>("/users/me/password", parsed);
+  const refresh = getRefreshToken();
+  const res = await api.post<ApiEnvelope<ChangePasswordResult>>("/users/me/password", parsed, {
+    headers: refresh ? { "X-Refresh-Token": refresh } : undefined,
+  });
+  const result = res?.data ?? {};
+  if (result.accessToken && result.refreshToken) {
+    setTokens(result.accessToken, result.refreshToken);
+  } else {
+    // The password change invalidated every token, and this client was not
+    // granted a replacement pair. Do not keep dead credentials around.
+    clearTokens();
+  }
+  return result;
+}
+
+export interface Passkey {
+  id: string;
+  credentialId: string;
+  nickname: string;
+  createdAt: string;
+  lastUsedAt?: string | null;
+  backupEligible: boolean;
+  backupState: boolean;
+  transports: string[];
+}
+
+export async function listPasskeys(): Promise<Passkey[]> {
+  const res = await api.get<ApiEnvelope<Passkey[]>>("/users/me/passkeys");
+  return Array.isArray(res.data) ? res.data : [];
+}
+
+export async function beginPasskeyRegistration(): Promise<PasskeyRegistrationOptions> {
+  const res = await api.post<ApiEnvelope<PasskeyRegistrationOptions>>(
+    "/users/me/passkeys/options",
+  );
+  return res.data;
+}
+
+export async function registerPasskey(
+  registration: RegistrationResult,
+  nickname?: string,
+): Promise<Passkey> {
+  const res = await api.post<ApiEnvelope<Passkey>>("/users/me/passkeys", {
+    ...registration,
+    nickname: nickname?.trim() || undefined,
+  });
+  return res.data;
+}
+
+export async function renamePasskey(id: string, nickname: string): Promise<Passkey> {
+  const res = await api.patch<ApiEnvelope<Passkey>>(
+    `/users/me/passkeys/${encodeURIComponent(id)}`,
+    { nickname },
+  );
+  return res.data;
+}
+
+export async function deletePasskey(id: string): Promise<void> {
+  await api.del<void>(`/users/me/passkeys/${encodeURIComponent(id)}`);
 }
 
 export interface Session {
@@ -94,6 +167,13 @@ export async function listSessions(): Promise<Session[]> {
 export async function revokeSession(id: string): Promise<void> {
   const refresh = getRefreshToken();
   await api.del<void>(`/users/me/sessions/${encodeURIComponent(id)}`, {
+    headers: refresh ? { "X-Refresh-Token": refresh } : undefined,
+  });
+}
+
+export async function revokeOtherSessions(): Promise<void> {
+  const refresh = getRefreshToken();
+  await api.del<void>("/users/me/sessions", {
     headers: refresh ? { "X-Refresh-Token": refresh } : undefined,
   });
 }
@@ -136,14 +216,22 @@ export interface ChecklistItem {
   label: string;
   description: string;
   completed: boolean;
+  /** Optional tasks never block completion. */
   optional: boolean;
   href: string;
 }
 
 export interface OnboardingChecklist {
   items: ChecklistItem[];
+  /** True when every required step for this user is done. */
   complete: boolean;
   dismissed: boolean;
+  /** Required steps already satisfied (progress numerator). */
+  requiredCompleted: number;
+  /** Total required steps for this user (progress denominator). */
+  requiredTotal: number;
+  /** Optional steps shown for this user. */
+  optionalTotal: number;
 }
 
 export async function getOnboarding(): Promise<OnboardingChecklist> {

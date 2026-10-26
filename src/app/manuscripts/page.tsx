@@ -3,9 +3,11 @@
 import { useCallback, useEffect, useState } from "react";
 import { ProtectedRoute } from "@/components/layout/ProtectedRoute";
 import { AppShell } from "@/components/layout/AppShell";
+import { RouteGuard } from "@/components/layout/RoleGuard";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
+import { MobileFab } from "@/components/ui/MobileFab";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Spinner } from "@/components/ui/Spinner";
 import { ManuscriptForm } from "@/features/manuscripts/ManuscriptForm";
@@ -93,17 +95,18 @@ export default function ManuscriptsPage() {
   return (
     <ProtectedRoute>
       <AppShell>
-        <div className="flex flex-col gap-4">
+        <RouteGuard><div className="flex flex-col gap-4">
           <PageHeader
             title="Manuscripts"
             description="Submissions moving through review, editing, proof and approval."
+            hideActionsOnMobile
             actions={
               <Button onClick={() => setSubmitOpen(true)}>
                 New manuscript
               </Button>
             }
           />
-          {actionError ? (
+          <MobileFab label="New manuscript" onClick={() => setSubmitOpen(true)} />          {actionError ? (
             <p role="alert" className="rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-300">
               {actionError}
             </p>
@@ -221,6 +224,7 @@ export default function ManuscriptsPage() {
             </div>
           )}
         </div>
+      </RouteGuard>
       </AppShell>
     </ProtectedRoute>
   );

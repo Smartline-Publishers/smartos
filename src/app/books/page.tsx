@@ -4,6 +4,7 @@ import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { ProtectedRoute } from "@/components/layout/ProtectedRoute";
 import { AppShell } from "@/components/layout/AppShell";
+import { RouteGuard } from "@/components/layout/RoleGuard";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { Pagination } from "@/components/ui/Pagination";
@@ -12,6 +13,7 @@ import { Spinner } from "@/components/ui/Spinner";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
+import { MobileFab } from "@/components/ui/MobileFab";
 import { BookTable } from "@/features/books/BookTable";
 import { BookForm } from "@/features/books/BookForm";
 import { createBook, listBooks, type CreateBookInput } from "@/features/books/api";
@@ -24,7 +26,7 @@ export default function BooksPage() {
   return (
     <ProtectedRoute>
       <AppShell>
-        <div className="flex flex-col gap-4">
+        <RouteGuard><div className="flex flex-col gap-4">
           <PageHeader
             title="Books"
             description="Every title in the catalog, by publication status."
@@ -33,6 +35,7 @@ export default function BooksPage() {
             <BooksContent />
           </Suspense>
         </div>
+      </RouteGuard>
       </AppShell>
     </ProtectedRoute>
   );
@@ -129,7 +132,7 @@ function BooksContent() {
             ]}
           />
         </div>
-        <div className="shrink-0 pb-0 sm:pb-0">
+        <div className="hidden shrink-0 md:block">
           <Button onClick={() => { setCreateError(null); setCreateOpen(true); }}>
             New book
           </Button>
@@ -178,6 +181,14 @@ function BooksContent() {
           />
         </>
       )}
+
+      <MobileFab
+        label="New book"
+        onClick={() => {
+          setCreateError(null);
+          setCreateOpen(true);
+        }}
+      />
     </>
   );
 }

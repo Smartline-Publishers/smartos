@@ -27,7 +27,7 @@ export function AttentionList({ items }: { items: AttentionItem[] }) {
   return (
     <section
       aria-label="Needs your attention"
-      className="flex min-w-0 flex-col rounded-xl border border-slate-200/90 bg-white p-5 shadow-[0_1px_2px_rgb(15_23_42/0.05)] dark:border-neutral-800 dark:bg-neutral-900 dark:shadow-none"
+      className="flex min-w-0 flex-col rounded-2xl border border-slate-200/90 bg-white p-4 shadow-[0_1px_2px_rgb(15_23_42/0.05)] dark:border-neutral-800 dark:bg-neutral-900 dark:shadow-none sm:p-5 md:rounded-xl"
     >
       <header className="mb-1 flex items-baseline justify-between gap-2">
         <h2 className="text-[15px] font-bold text-slate-900 dark:text-neutral-100">

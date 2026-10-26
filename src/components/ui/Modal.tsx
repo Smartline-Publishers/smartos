@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, type ReactNode } from "react";
 import { createPortal } from "react-dom";
+import { X } from "@phosphor-icons/react";
 import { cn } from "@/lib/cn";
 
 export type ModalSize = "sm" | "md" | "lg";
@@ -103,7 +104,7 @@ export function Modal({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-[#071a3280] p-4"
+      className="fixed inset-0 z-50 flex items-end justify-center bg-[#071a3280] p-0 backdrop-blur-[2px] sm:items-center sm:p-4"
       onClick={disableBackdropClose ? undefined : () => requestClose()}
       role="presentation"
     >
@@ -115,14 +116,23 @@ export function Modal({
         aria-describedby={descriptionId}
         tabIndex={-1}
         className={cn(
-          "shell-scroll max-h-[92vh] overflow-auto rounded-[14px] bg-white p-[23px] shadow-[0_20px_70px_#00132b40] focus-visible:outline-none dark:bg-neutral-900 dark:shadow-[0_20px_70px_#00000080]",
+          "shell-scroll max-h-[92dvh] w-full overflow-auto rounded-t-[26px] bg-white p-5 shadow-[0_-12px_60px_#00132b40] focus-visible:outline-none",
+          "sm:rounded-[14px] sm:p-[23px] sm:shadow-[0_20px_70px_#00132b40]",
+          "dark:bg-neutral-900 dark:shadow-[0_20px_70px_#00000080]",
           SIZES[size],
         )}
+        style={{ paddingBottom: "max(1.25rem, env(safe-area-inset-bottom))" }}
         onClick={(e) => e.stopPropagation()}
       >
-        <header className="mb-[18px] flex items-start justify-between gap-2">
+        <div
+          aria-hidden="true"
+          className="mx-auto mb-4 h-1.5 w-10 rounded-full bg-slate-300 dark:bg-neutral-600 sm:hidden"
+        />
+        <header className="mb-4 flex items-start justify-between gap-2 sm:mb-[18px]">
           <div className="min-w-0">
-            <h2 className="text-[19px] font-bold text-ink dark:text-neutral-100">{title}</h2>
+            <h2 className="text-[20px] font-bold tracking-[-0.3px] text-ink dark:text-neutral-100 sm:text-[19px]">
+              {title}
+            </h2>
             {description ? (
               <p
                 id={descriptionId}
@@ -136,9 +146,9 @@ export function Modal({
             type="button"
             onClick={() => requestClose()}
             aria-label="Close dialog"
-            className="shrink-0 rounded-lg bg-[#f1f4f8] px-2.5 py-1.5 text-sm font-semibold text-ink hover:bg-slate-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 dark:bg-neutral-800 dark:text-neutral-100 dark:hover:bg-neutral-700"
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#f1f4f8] text-ink transition-colors hover:bg-slate-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 dark:bg-neutral-800 dark:text-neutral-100 dark:hover:bg-neutral-700 sm:h-9 sm:w-9 sm:rounded-lg"
           >
-            ✕
+            <X size={18} aria-hidden="true" />
           </button>
         </header>
         {children}

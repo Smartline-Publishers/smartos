@@ -10,6 +10,7 @@ import { Card } from "@/components/ui/Card";
 import { Brand } from "@/components/layout/Brand";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
+import { Alert } from "@/components/ui/Alert";
 import { useAuth } from "@/hooks/use-auth";
 import { ApiError } from "@/lib/api-client";
 import { registerOrg } from "@/features/auth/api";
@@ -61,7 +62,11 @@ export default function RegisterPage() {
   };
 
   return (
-    <main id="main-content" className="mx-auto max-w-lg py-10">
+    <main
+      id="main-content"
+      className="mx-auto flex min-h-dvh w-full max-w-lg flex-col justify-center px-4 py-8 sm:py-10"
+      style={{ paddingBottom: "max(2rem, env(safe-area-inset-bottom))" }}
+    >
       <h1 className="sr-only">Create your SmartOS organization</h1>
       <Brand tone="light" className="mb-6 text-center" />
       <ol className="mb-4 flex items-center gap-2 text-sm" aria-label="Registration progress">
@@ -94,7 +99,7 @@ export default function RegisterPage() {
               setOrg(v);
               setStep(2);
             })}
-            className="flex flex-col gap-3"
+            className="flex flex-col gap-4"
             aria-label="Organization details form"
           >
             <Input
@@ -116,7 +121,7 @@ export default function RegisterPage() {
         <Card title="Create your admin account">
           <form
             onSubmit={adminForm.handleSubmit(onSubmit)}
-            className="flex flex-col gap-3"
+            className="flex flex-col gap-4"
             aria-label="Admin account form"
           >
             <Input
@@ -143,11 +148,7 @@ export default function RegisterPage() {
               error={adminForm.formState.errors.adminPassword?.message}
               {...adminForm.register("adminPassword")}
             />
-            {serverError ? (
-              <p role="alert" className="text-sm text-red-600 dark:text-red-400">
-                {serverError}
-              </p>
-            ) : null}
+            {serverError ? <Alert tone="error">{serverError}</Alert> : null}
             <div className="flex gap-2">
               <Button variant="ghost" onClick={() => setStep(1)}>
                 Back

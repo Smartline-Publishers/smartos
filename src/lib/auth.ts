@@ -77,12 +77,19 @@ export function parseJwt(token: string): JwtClaims | null {
           (r): r is Role => typeof r === "string",
         )
       : [];
+    const exp = typeof raw["exp"] === "number" ? (raw["exp"] as number) : 0;
+    // A token that has already expired must never make the UI believe the
+    // caller is still signed in. (The server remains authoritative; this just
+    // prevents a dead token from being treated as a live session.)
+    if (exp > 0 && exp * 1000 <= Date.now()) {
+      return null;
+    }
     return {
       sub: raw["sub"] as string,
       email: typeof raw["email"] === "string" ? raw["email"] : "",
       orgId: raw["orgId"] as string,
       roles,
-      exp: typeof raw["exp"] === "number" ? (raw["exp"] as number) : 0,
+      exp,
     };
   } catch {
     return null;

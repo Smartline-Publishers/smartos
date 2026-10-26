@@ -6,6 +6,7 @@ import {
   getOnboarding,
   getProfile,
   listSessions,
+  revokeOtherSessions,
   revokeSession,
   updateOnboarding,
   updateProfile,
@@ -82,7 +83,7 @@ describe("settings api", () => {
         calls.push(`${init?.method} ${url}`);
         if (String(url).endsWith("/users/me/sessions")) {
           expect(new Headers(init?.headers).get("X-Refresh-Token")).toBe("r1");
-          return ok([]);
+          if ((init?.method ?? "GET") === "GET") return ok([]);
         }
         return Promise.resolve({ ok: true, status: 204, json: () => Promise.resolve({}) });
       }),
@@ -90,7 +91,9 @@ describe("settings api", () => {
 
     expect(await listSessions()).toEqual([]);
     await revokeSession("s1");
+    await revokeOtherSessions();
     expect(calls).toContain("DELETE http://localhost:8080/api/v1/users/me/sessions/s1");
+    expect(calls).toContain("DELETE http://localhost:8080/api/v1/users/me/sessions");
   });
 
   it("reads and updates onboarding", async () => {

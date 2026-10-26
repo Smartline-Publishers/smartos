@@ -13,7 +13,7 @@ export function Pagination({ page, pageSize, total, onPageChange }: PaginationPr
   const totalPages = Math.max(1, Math.ceil(total / Math.max(1, pageSize)));
   const safePage = Math.min(Math.max(1, page), totalPages);
   return (
-    <nav aria-label="Pagination" className="flex items-center gap-2">
+    <nav aria-label="Pagination" className="flex flex-wrap items-center gap-2">
       <Button
         variant="ghost"
         size="sm"
@@ -23,7 +23,7 @@ export function Pagination({ page, pageSize, total, onPageChange }: PaginationPr
       >
         Prev
       </Button>
-      <span aria-live="polite" className="text-sm text-slate-600 dark:text-neutral-400">
+      <span aria-live="polite" className="text-[13px] text-slate-600 dark:text-neutral-400">
         Page {safePage} of {totalPages} ({total} items)
       </span>
       <Button

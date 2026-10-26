@@ -10,6 +10,7 @@ import { Spinner } from "@/components/ui/Spinner";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { useAuth } from "@/hooks/use-auth";
 import { useOrg } from "@/hooks/use-org";
+import { hasPermission } from "@/lib/permissions";
 import { cn } from "@/lib/cn";
 import { OrganizationSettings } from "@/features/settings/OrganizationSettings";
 import { ThemeCustomizer } from "@/features/settings/ThemeCustomizer";
@@ -27,10 +28,6 @@ const SECTION_LABELS: Record<Section, string> = {
   appearance: "Appearance",
   security: "Security",
 };
-
-function isAdmin(roles: string[] | undefined): boolean {
-  return !!roles?.some((r) => r === "ORG_ADMIN" || r === "PLATFORM_ADMIN");
-}
 
 export default function SettingsPage() {
   return (
@@ -52,9 +49,10 @@ export default function SettingsPage() {
 
 function SettingsContent() {
   const searchParams = useSearchParams();
-  const { user } = useAuth();
+  const { permissions } = useAuth();
   const { org, profile, loading, refresh } = useOrg();
-  const admin = isAdmin(user?.roles);
+  // Organization settings are only for roles that may administer them.
+  const admin = hasPermission(permissions, "org.settings.write");
   const requested = searchParams.get("section");
   const section: Section =
     requested === "organization" ||
@@ -77,7 +75,7 @@ function SettingsContent() {
     <div className="flex flex-col gap-4">
       <nav
         aria-label="Settings sections"
-        className="flex gap-1 overflow-x-auto rounded-xl border border-line bg-white p-1 dark:border-neutral-800 dark:bg-neutral-900"
+        className="no-scrollbar shell-scroll flex snap-x gap-1 overflow-x-auto rounded-2xl border border-line bg-white p-1 shadow-[0_1px_2px_rgb(15_23_42/0.04)] dark:border-neutral-800 dark:bg-neutral-900 dark:shadow-none md:rounded-xl"
       >
         {visible.map((s) => (
           <Link
@@ -85,9 +83,9 @@ function SettingsContent() {
             href={`/settings?section=${s}`}
             aria-current={section === s ? "page" : undefined}
             className={cn(
-              "shrink-0 rounded-lg px-3 py-2 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500",
+              "flex min-h-10 shrink-0 snap-start items-center rounded-xl px-3.5 text-sm font-semibold transition-[background-color,color,transform] duration-150 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 md:min-h-0 md:rounded-lg md:px-3 md:py-2",
               section === s
-                ? "bg-brand-600 text-white"
+                ? "bg-brand-600 text-[rgb(var(--org-on-primary,255_255_255))] shadow-sm"
                 : "text-slate-600 hover:bg-slate-100 hover:text-ink dark:text-neutral-400 dark:hover:bg-neutral-800 dark:hover:text-neutral-100",
             )}
           >

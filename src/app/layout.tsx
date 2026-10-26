@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import { AuthProvider } from "@/hooks/use-auth";
 import { OrgProvider } from "@/hooks/use-org";
@@ -23,6 +23,18 @@ export const metadata: Metadata = {
     title: "SmartOS",
     statusBarStyle: "default",
   },
+};
+
+/**
+ * `viewport-fit=cover` is required for `env(safe-area-inset-*)` to report real
+ * values on notched iOS devices. Without it the mobile app bar and tab bar sit
+ * under the notch/home indicator when installed as a PWA.
+ */
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  themeColor: "#f5f7fb",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

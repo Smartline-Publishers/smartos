@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { ProtectedRoute } from "@/components/layout/ProtectedRoute";
 import { AppShell } from "@/components/layout/AppShell";
+import { RouteGuard } from "@/components/layout/RoleGuard";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -13,12 +14,11 @@ import { listAuditLogs, type AuditLog } from "@/features/audit/api";
 import type { Page } from "@/types/api";
 import { usePagedQuery } from "@/hooks/use-paged-query";
 import { formatDateTime } from "@/lib/format";
+import { hasPermission } from "@/lib/permissions";
 
 export default function AuditPage() {
-  const { user } = useAuth();
-  const isAdmin =
-    user !== null &&
-    (user.roles.includes("ORG_ADMIN") || user.roles.includes("PLATFORM_ADMIN"));
+  const { permissions } = useAuth();
+  const canViewAudit = hasPermission(permissions, "audit.read");
   const query = usePagedQuery({ pageSize: 20 });
   const [data, setData] = useState<Page<AuditLog> | null>(null);
   const [loading, setLoading] = useState(true);
@@ -39,19 +39,19 @@ export default function AuditPage() {
   }, [params.page, params.pageSize]);
 
   useEffect(() => {
-    if (isAdmin) void refresh();
+    if (canViewAudit) void refresh();
     else setLoading(false);
-  }, [refresh, isAdmin]);
+  }, [refresh, canViewAudit]);
 
   return (
     <ProtectedRoute>
       <AppShell>
-        <div className="flex flex-col gap-4">
+        <RouteGuard><div className="flex flex-col gap-4">
           <PageHeader
             title="Audit log"
             description="Who changed what, and when. Newest first; entries are append-only."
           />
-          {!isAdmin ? (
+          {!canViewAudit ? (
             <EmptyState
               title="Restricted"
               description="Only organization and platform admins can view the audit log."
@@ -108,6 +108,7 @@ export default function AuditPage() {
             </Card>
           )}
         </div>
+      </RouteGuard>
       </AppShell>
     </ProtectedRoute>
   );
