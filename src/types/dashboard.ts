@@ -26,6 +26,13 @@ export interface ActivityItem {
   createdAt?: string;
 }
 
+/**
+ * Who the activity feed covers. The backend decides this from the caller's
+ * permissions; the UI only uses it for labelling. Non-admin users always
+ * receive `SELF`.
+ */
+export type ActivityScope = "SELF" | "ORGANIZATION";
+
 /** Shape of GET /api/v1/dashboard/summary. Sections are optional for forward-compat. */
 export interface DashboardSummary {
   totalBooks: number;
@@ -36,6 +43,8 @@ export interface DashboardSummary {
   titlePipeline?: PipelineSlice[];
   attention?: AttentionItem[];
   activity?: ActivityItem[];
+  /** `SELF` for personal activity, `ORGANIZATION` for admins with audit.read. */
+  activityScope?: ActivityScope;
   trends?: {
     books: number[];
     royalties: number[];

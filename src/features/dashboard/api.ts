@@ -78,6 +78,7 @@ const SAMPLE: DashboardSummary = {
     { id: "e4", actor: "Finance", action: "paid Q2 royalties to 9 contributors", timeLabel: "Yesterday" },
     { id: "e5", actor: "Yaw Darko", action: "moved Twi Grammar to proof stage", timeLabel: "2 days ago" },
   ],
+  activityScope: "ORGANIZATION",
   trends: {
     books: [30, 32, 33, 35, 36, 38, 40, 41, 43, 44, 46, 48],
     royalties: [9.2, 10.1, 9.8, 11.4, 12.0, 11.6, 13.1, 14.0, 13.5, 15.2, 16.8, 18.4],

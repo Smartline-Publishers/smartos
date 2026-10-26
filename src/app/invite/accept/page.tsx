@@ -14,6 +14,8 @@ import { Spinner } from "@/components/ui/Spinner";
 import { useAuth } from "@/hooks/use-auth";
 import { ApiError } from "@/lib/api-client";
 import { AcceptInviteSchema, acceptInvite, type AcceptInviteInput } from "@/features/invites/api";
+import { LegalConsent, legalVersions } from "@/features/legal/LegalConsent";
+import { useLegalDocuments } from "@/features/legal/useLegalDocuments";
 
 export default function InviteAcceptPage() {
   return (
@@ -28,6 +30,10 @@ function InviteAcceptContent() {
   const searchParams = useSearchParams();
   const { refreshSession } = useAuth();
   const [serverError, setServerError] = useState<string | null>(null);
+  const legal = useLegalDocuments();
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [acceptedPrivacy, setAcceptedPrivacy] = useState(false);
+  const [consentError, setConsentError] = useState<string | null>(null);
   const {
     register,
     handleSubmit,
@@ -43,13 +49,32 @@ function InviteAcceptContent() {
 
   const onSubmit = async (values: AcceptInviteInput) => {
     setServerError(null);
+    setConsentError(null);
+    const versions = legalVersions(legal.documents);
+    if (legal.loading || legal.error || !versions.termsVersion || !versions.privacyVersion) {
+      setConsentError("The current legal documents are unavailable. Retry before joining.");
+      return;
+    }
+    if (!acceptedTerms || !acceptedPrivacy) {
+      setConsentError("Accept both the Terms of Service and the Privacy Policy to continue.");
+      return;
+    }
     try {
-      await acceptInvite(values);
+      await acceptInvite({
+        ...values,
+        termsVersion: versions.termsVersion,
+        privacyVersion: versions.privacyVersion,
+      });
       refreshSession();
       router.push("/dashboard");
     } catch (e) {
-      if (e instanceof ApiError) setServerError(e.message);
-      else setServerError("Could not accept the invitation. Please try again.");
+      if (e instanceof ApiError) {
+        setServerError(e.message);
+        const legalField = e.fields?.termsVersion?.[0] ?? e.fields?.privacyVersion?.[0];
+        if (legalField) setConsentError(legalField);
+      } else {
+        setServerError("Could not accept the invitation. Please try again.");
+      }
     }
   };
 
@@ -86,8 +111,25 @@ function InviteAcceptContent() {
             error={errors.password?.message}
             {...register("password")}
           />
+          <LegalConsent
+            documents={legal.documents}
+            loading={legal.loading}
+            error={legal.error}
+            onRetry={() => void legal.reload()}
+            acceptedTerms={acceptedTerms}
+            acceptedPrivacy={acceptedPrivacy}
+            onChange={({ terms, privacy }) => {
+              setAcceptedTerms(terms);
+              setAcceptedPrivacy(privacy);
+              setConsentError(null);
+            }}
+            errorMessage={consentError}
+          />
           {serverError ? <Alert tone="error">{serverError}</Alert> : null}
-          <Button type="submit" disabled={isSubmitting}>
+          <Button
+            type="submit"
+            disabled={isSubmitting || legal.loading || legal.error !== null}
+          >
             {isSubmitting ? "Joining…" : "Accept invitation"}
           </Button>
         </form>

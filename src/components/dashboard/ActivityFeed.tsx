@@ -1,17 +1,42 @@
 import { EmptyState } from "@/components/ui/EmptyState";
 import { timeAgo } from "@/lib/format";
-import type { ActivityItem } from "@/types/dashboard";
+import type { ActivityItem, ActivityScope } from "@/types/dashboard";
 
-/** Recent activity timeline. */
-export function ActivityFeed({ items }: { items: ActivityItem[] }) {
+interface ActivityFeedProps {
+  items: ActivityItem[];
+  /**
+   * Backend-declared scope. Defaults to `SELF` so a missing field can never be
+   * presented as organisation-wide activity.
+   */
+  scope?: ActivityScope;
+  /** False when the surrounding Card already supplies the heading. */
+  showHeading?: boolean;
+}
+
+/**
+ * Recent activity timeline.
+ *
+ * <p>The backend decides what this contains — personal entries for ordinary
+ * users, organisation entries for holders of `audit.read`. This component only
+ * labels the data it was given; it never fetches or widens the scope.
+ */
+export function ActivityFeed({ items, scope = "SELF", showHeading = true }: ActivityFeedProps) {
+  const organisationWide = scope === "ORGANIZATION";
+  const title = organisationWide ? "Recent activity" : "Your recent activity";
   return (
-    <section
-      aria-label="Recent activity"
-      className="flex min-w-0 flex-col rounded-2xl border border-slate-200/90 bg-white p-4 shadow-[0_1px_2px_rgb(15_23_42/0.05)] dark:border-neutral-800 dark:bg-neutral-900 dark:shadow-none sm:p-5 md:rounded-xl"
-    >
-      <h2 className="mb-1 text-[15px] font-bold text-slate-900 dark:text-neutral-100">Recent activity</h2>
+    <section aria-label={title} className="flex min-w-0 flex-col">
+      {showHeading ? (
+        <h2 className="mb-1 text-[15px] font-bold text-slate-900 dark:text-neutral-100">{title}</h2>
+      ) : null}
       {items.length === 0 ? (
-        <EmptyState title="No activity yet" description="Actions across the press will appear here." />
+        <EmptyState
+          title="No activity yet"
+          description={
+            organisationWide
+              ? "Actions across your organisation will appear here."
+              : "Actions you take will appear here."
+          }
+        />
       ) : (
         <ul className="flex flex-col">
           {items.map((item) => (

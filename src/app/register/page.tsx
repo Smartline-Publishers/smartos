@@ -14,6 +14,8 @@ import { Alert } from "@/components/ui/Alert";
 import { useAuth } from "@/hooks/use-auth";
 import { ApiError } from "@/lib/api-client";
 import { registerOrg } from "@/features/auth/api";
+import { LegalConsent, legalVersions } from "@/features/legal/LegalConsent";
+import { useLegalDocuments } from "@/features/legal/useLegalDocuments";
 
 const OrgSchema = z.object({
   organizationName: z.string().min(2, "Give your publishing house a name").max(200),
@@ -35,6 +37,10 @@ export default function RegisterPage() {
   const [org, setOrg] = useState<OrgInput>({ organizationName: "" });
   const [serverError, setServerError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const legal = useLegalDocuments();
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [acceptedPrivacy, setAcceptedPrivacy] = useState(false);
+  const [consentError, setConsentError] = useState<string | null>(null);
 
   const orgForm = useForm<OrgInput>({
     resolver: zodResolver(OrgSchema),
@@ -47,14 +53,34 @@ export default function RegisterPage() {
 
   const onSubmit = async (admin: AdminInput) => {
     setServerError(null);
+    setConsentError(null);
+    const versions = legalVersions(legal.documents);
+    if (legal.loading || legal.error || !versions.termsVersion || !versions.privacyVersion) {
+      setConsentError("The current legal documents are unavailable. Retry before creating the organization.");
+      return;
+    }
+    if (!acceptedTerms || !acceptedPrivacy) {
+      setConsentError("Accept both the Terms of Service and the Privacy Policy to continue.");
+      return;
+    }
     setSubmitting(true);
     try {
-      await registerOrg({ ...org, ...admin });
+      await registerOrg({
+        ...org,
+        ...admin,
+        termsVersion: versions.termsVersion,
+        privacyVersion: versions.privacyVersion,
+      });
       refreshSession(admin.adminEmail);
       router.push("/dashboard");
     } catch (e) {
-      if (e instanceof ApiError) setServerError(e.message);
-      else setServerError("Registration failed. Please try again.");
+      if (e instanceof ApiError) {
+        setServerError(e.message);
+        const legalField = e.fields?.termsVersion?.[0] ?? e.fields?.privacyVersion?.[0];
+        if (legalField) setConsentError(legalField);
+      } else {
+        setServerError("Registration failed. Please try again.");
+      }
       setStep(2);
     } finally {
       setSubmitting(false);
@@ -148,12 +174,30 @@ export default function RegisterPage() {
               error={adminForm.formState.errors.adminPassword?.message}
               {...adminForm.register("adminPassword")}
             />
+            <LegalConsent
+              documents={legal.documents}
+              loading={legal.loading}
+              error={legal.error}
+              onRetry={() => void legal.reload()}
+              acceptedTerms={acceptedTerms}
+              acceptedPrivacy={acceptedPrivacy}
+              onChange={({ terms, privacy }) => {
+                setAcceptedTerms(terms);
+                setAcceptedPrivacy(privacy);
+                setConsentError(null);
+              }}
+              errorMessage={consentError}
+            />
             {serverError ? <Alert tone="error">{serverError}</Alert> : null}
             <div className="flex gap-2">
-              <Button variant="ghost" onClick={() => setStep(1)}>
+              <Button type="button" variant="ghost" onClick={() => setStep(1)}>
                 Back
               </Button>
-              <Button type="submit" disabled={submitting} className="flex-1">
+              <Button
+                type="submit"
+                disabled={submitting || legal.loading || legal.error !== null}
+                className="flex-1"
+              >
                 {submitting ? "Creating…" : `Create ${org.organizationName || "organization"}`}
               </Button>
             </div>

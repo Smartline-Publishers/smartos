@@ -215,6 +215,12 @@ export function getMenuGroups(
 
 /** Accessible label for the current route, used by the mobile app bar. */
 export function labelForPath(pathname: string): string {
+  // Utility destinations live outside the primary navigation but still need a
+  // title in the mobile app bar.
+  if (isRouteActive(pathname, "/help")) return "Help & guides";
+  if (isRouteActive(pathname, "/legal")) return "Legal centre";
+  if (isRouteActive(pathname, "/profile")) return "Profile";
+  if (isRouteActive(pathname, "/settings")) return "Settings";
   for (const section of NAV_SECTIONS) {
     for (const child of section.children ?? []) {
       if (isRouteActive(pathname, child.href)) return child.label;

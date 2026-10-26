@@ -516,6 +516,9 @@ function getSideCards(role: string | null, permissions: Permission[], summary: D
   const cards: Array<any> = [];
   const canViewBooks = hasPermission(permissions, "books.read");
   const canViewProduction = hasPermission(permissions, "production.read");
+  // The backend sets the scope; treat a missing value as the narrower personal
+  // feed rather than assuming organisation-wide access.
+  const activityScope = summary.activityScope ?? "SELF";
 
   switch (role) {
     case "EDITOR":
@@ -535,7 +538,7 @@ function getSideCards(role: string | null, permissions: Permission[], summary: D
       }
       if (hasPermission(permissions, "tasks.read")) {
         cards.push({
-          title: "Editorial tasks",
+          title: "Your recent activity",
           action: (
             <Link
               href="/tasks"
@@ -544,7 +547,13 @@ function getSideCards(role: string | null, permissions: Permission[], summary: D
               View tasks
             </Link>
           ),
-          children: <ActivityFeed items={summary.activity ?? []} />,
+          children: (
+            <ActivityFeed
+              items={summary.activity ?? []}
+              scope={activityScope}
+              showHeading={false}
+            />
+          ),
         });
       }
       break;
@@ -575,7 +584,13 @@ function getSideCards(role: string | null, permissions: Permission[], summary: D
               View audit log
             </Link>
           ),
-          children: <ActivityFeed items={summary.activity ?? []} />,
+          children: (
+            <ActivityFeed
+              items={summary.activity ?? []}
+              scope={activityScope}
+              showHeading={false}
+            />
+          ),
         });
       }
       break;
@@ -583,7 +598,7 @@ function getSideCards(role: string | null, permissions: Permission[], summary: D
     case "PRODUCTION":
       if (canViewProduction) {
         cards.push({
-          title: "Production activity",
+          title: "Your recent activity",
           action: (
             <Link
               href="/production"
@@ -592,7 +607,13 @@ function getSideCards(role: string | null, permissions: Permission[], summary: D
               View production
             </Link>
           ),
-          children: <ActivityFeed items={summary.activity ?? []} />,
+          children: (
+            <ActivityFeed
+              items={summary.activity ?? []}
+              scope={activityScope}
+              showHeading={false}
+            />
+          ),
         });
       }
       break;
@@ -600,7 +621,7 @@ function getSideCards(role: string | null, permissions: Permission[], summary: D
     case "SALES":
       if (hasPermission(permissions, "orders.read")) {
         cards.push({
-          title: "Recent orders",
+          title: "Your recent activity",
           action: (
             <Link
               href="/orders"
@@ -609,7 +630,13 @@ function getSideCards(role: string | null, permissions: Permission[], summary: D
               View orders
             </Link>
           ),
-          children: <ActivityFeed items={summary.activity ?? []} />,
+          children: (
+            <ActivityFeed
+              items={summary.activity ?? []}
+              scope={activityScope}
+              showHeading={false}
+            />
+          ),
         });
       }
       break;
@@ -631,7 +658,7 @@ function getSideCards(role: string | null, permissions: Permission[], summary: D
       }
       if (canViewProduction) {
         cards.push({
-          children: <ActivityFeed items={summary.activity ?? []} />,
+          children: <ActivityFeed items={summary.activity ?? []} scope={activityScope} />,
         });
       }
   }

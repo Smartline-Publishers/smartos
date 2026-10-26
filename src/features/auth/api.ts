@@ -118,6 +118,9 @@ export async function registerOrg(input: {
   adminEmail: string;
   adminPassword: string;
   adminFullName: string;
+  /** Exact legal versions loaded from GET /legal/documents. */
+  termsVersion: string;
+  privacyVersion: string;
 }): Promise<AuthTokens> {
   const slug =
     input.slug ??
@@ -133,6 +136,8 @@ export async function registerOrg(input: {
     adminEmail: input.adminEmail,
     adminPassword: input.adminPassword,
     adminFullName: input.adminFullName,
+    termsVersion: input.termsVersion,
+    privacyVersion: input.privacyVersion,
   });
   const tokens = requireTokens(res.data);
   setTokens(tokens.accessToken, tokens.refreshToken);

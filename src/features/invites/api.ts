@@ -40,6 +40,12 @@ export const AcceptInviteSchema = z.object({
 
 export type AcceptInviteInput = z.infer<typeof AcceptInviteSchema>;
 
+export interface AcceptInvitePayload extends AcceptInviteInput {
+  /** Exact legal versions loaded from GET /legal/documents. */
+  termsVersion: string;
+  privacyVersion: string;
+}
+
 export async function listInvites(): Promise<Invite[]> {
   const res = await api.get<ApiEnvelope<Invite[]>>("/invites");
   return res.data;
@@ -55,11 +61,15 @@ export async function revokeInvite(id: string): Promise<void> {
   await api.del<void>(`/invites/${encodeURIComponent(id)}`);
 }
 
-export async function acceptInvite(input: AcceptInviteInput): Promise<AuthTokens> {
+export async function acceptInvite(input: AcceptInvitePayload): Promise<AuthTokens> {
   const parsed = AcceptInviteSchema.parse(input);
   const res = await api.post<ApiEnvelope<{ accessToken: string; refreshToken: string }>>(
     "/invites/accept",
-    parsed,
+    {
+      ...parsed,
+      termsVersion: input.termsVersion,
+      privacyVersion: input.privacyVersion,
+    },
   );
   const tokens: AuthTokens = {
     accessToken: res.data.accessToken,

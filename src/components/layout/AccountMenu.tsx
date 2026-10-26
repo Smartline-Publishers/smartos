@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Plus } from "@phosphor-icons/react";
+import { Lifebuoy, Plus, Scales } from "@phosphor-icons/react";
 import { useAuth } from "@/hooks/use-auth";
 import { useOrg } from "@/hooks/use-org";
 import { Button } from "@/components/ui/Button";
@@ -94,6 +94,14 @@ export function AccountMenuPanel({ onClose, className }: AccountMenuPanelProps) 
         </Button>
         <Button size="sm" variant="ghost" onClick={() => go("/settings")}>
           Settings
+        </Button>
+        <Button size="sm" variant="ghost" onClick={() => go("/help")}>
+          <Lifebuoy size={16} aria-hidden="true" />
+          Help &amp; guides
+        </Button>
+        <Button size="sm" variant="ghost" onClick={() => go("/legal")}>
+          <Scales size={16} aria-hidden="true" />
+          Legal centre
         </Button>
       </div>
     </div>

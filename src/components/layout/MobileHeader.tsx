@@ -6,7 +6,9 @@ import { usePathname, useRouter } from "next/navigation";
 import {
   CaretRight,
   GearSix,
+  Lifebuoy,
   MagnifyingGlass,
+  Scales,
   SignOut,
   UserCircle,
 } from "@phosphor-icons/react";
@@ -227,6 +229,8 @@ export function MobileHeader() {
               {[
                 { href: "/profile", label: "Profile", icon: UserCircle },
                 { href: "/settings", label: "Settings", icon: GearSix },
+                { href: "/help", label: "Help & guides", icon: Lifebuoy },
+                { href: "/legal", label: "Legal centre", icon: Scales },
               ].map((item) => {
                 const ItemIcon = item.icon;
                 return (
