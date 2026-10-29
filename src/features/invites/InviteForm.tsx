@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Alert } from "@/components/ui/Alert";
 import { CreateInviteSchema, type CreateInviteInput } from "@/features/invites/api";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
@@ -25,11 +26,14 @@ export function InviteForm({
   submitting,
   onCancel,
   onDirtyChange,
+  serverError,
 }: {
   onSubmit: (values: CreateInviteInput) => Promise<{ token?: string } | void> | void;
   submitting?: boolean;
   onCancel?: () => void;
   onDirtyChange?: (dirty: boolean) => void;
+  /** Server-side rejection (e.g. already a member, pending invite exists). */
+  serverError?: string;
 }) {
   const {
     register,
@@ -49,27 +53,44 @@ export function InviteForm({
       onSubmit={handleSubmit(onSubmit)}
       className="flex flex-col gap-3"
       aria-label="Invite form"
+      aria-busy={submitting || undefined}
     >
-      <Input label="Email" type="email" required error={errors.email?.message} {...register("email")} />
+      {serverError ? (
+        <Alert tone="error">
+          {serverError}
+        </Alert>
+      ) : null}
+      <Input
+        label="Email address"
+        type="email"
+        placeholder="name@example.com"
+        autoComplete="email"
+        required
+        hint="We'll send them a one-time invitation link."
+        error={errors.email?.message}
+        {...register("email")}
+      />
       <div className="grid gap-3 sm:grid-cols-2">
         <Select
           label="Role"
+          hint="What they can do in this organisation."
           error={errors.role?.message}
           options={ROLE_OPTIONS}
           {...register("role")}
         />
         <Input
-          label="Valid for (days)"
+          label="Invitation valid for (days)"
           type="number"
           min={1}
           max={30}
+          placeholder="7"
           error={errors.daysValid?.message}
           {...register("daysValid")}
         />
       </div>
       <div className="flex flex-wrap gap-2">
         <Button type="submit" disabled={submitting}>
-          {submitting ? "Inviting…" : "Invite"}
+          {submitting ? "Sending invitation…" : "Send invitation"}
         </Button>
         {onCancel ? (
           <Button type="button" variant="ghost" onClick={onCancel}>

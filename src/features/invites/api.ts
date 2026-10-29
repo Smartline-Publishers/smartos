@@ -12,6 +12,8 @@ export interface Invite {
   acceptedAt?: string;
   /** Present only in the create response — shown once, never stored. */
   token?: string;
+  /** True when the invitation email was handed to the outbound mail service. */
+  emailSent?: boolean;
 }
 
 export const CreateInviteSchema = z.object({

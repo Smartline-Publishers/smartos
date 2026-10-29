@@ -9,12 +9,15 @@ import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
 import { MobileFab } from "@/components/ui/MobileFab";
-import { EnvelopeSimple, UserPlus } from "@phosphor-icons/react";
+import { Copy, EnvelopeSimple, UserPlus } from "@phosphor-icons/react";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Spinner } from "@/components/ui/Spinner";
 import { Pagination } from "@/components/ui/Pagination";
 import { Card } from "@/components/ui/Card";
+import { Alert } from "@/components/ui/Alert";
 import { useAuth } from "@/hooks/use-auth";
+import { ApiError } from "@/lib/api-client";
+import { copyText } from "@/lib/clipboard";
 import { hasPermission } from "@/lib/permissions";
 import {
   createInvite,
@@ -50,7 +53,13 @@ export default function UsersPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
-  const [inviteToken, setInviteToken] = useState<string | null>(null);
+  const [inviteError, setInviteError] = useState<string | null>(null);
+  const [inviteSent, setInviteSent] = useState<{
+    email: string;
+    link: string;
+    emailSent: boolean;
+  } | null>(null);
+  const [inviteCopied, setInviteCopied] = useState(false);
   const [userModalOpen, setUserModalOpen] = useState(false);
   const [inviteModalOpen, setInviteModalOpen] = useState(false);
   const [editing, setEditing] = useState<OrgUser | null>(null);
@@ -113,16 +122,44 @@ export default function UsersPage() {
   };
 
   const onInvite = async (values: CreateInviteInput) => {
+    setInviteError(null);
+    setInviteSent(null);
     setInviteSubmitting(true);
     try {
       const created = await createInvite(values);
-      setInviteToken(created.token ?? null);
+      if (!created.token) {
+        setInviteError("The invitation was created, but no link was returned.");
+        return;
+      }
+      setInviteSent({
+        email: values.email,
+        link: `${window.location.origin}/invite/accept?token=${encodeURIComponent(created.token)}`,
+        emailSent: created.emailSent ?? false,
+      });
       setFormDirty(false);
       await refresh();
     } catch (e: unknown) {
-      setActionError(e instanceof Error ? `Could not create invite: ${e.message}` : "Could not create invite");
+      const apiErr = e instanceof ApiError ? e : null;
+      if (apiErr?.status === 409) {
+        // Backend enforcement: already a member, or a pending invitation exists.
+        setInviteError(apiErr.message);
+      } else {
+        setInviteError(e instanceof Error ? `Could not send invitation: ${e.message}` : "Could not send invitation");
+      }
     } finally {
       setInviteSubmitting(false);
+    }
+  };
+
+  const onCopyInviteLink = async (link: string) => {
+    setInviteError(null);
+    try {
+      await copyText(link);
+      setInviteCopied(true);
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+      setInviteCopied(false);
+    } catch {
+      setInviteError("Could not copy the link — copy it manually.");
     }
   };
 
@@ -159,7 +196,11 @@ export default function UsersPage() {
             actions={
               canEdit ? (
                 <>
-                  <Button variant="ghost" onClick={() => { setInviteToken(null); setInviteModalOpen(true); }}>
+                  <Button variant="ghost" onClick={() => {
+                    setInviteSent(null);
+                    setInviteCopied(false);
+                    setInviteModalOpen(true);
+                  }}>
                     Invite member
                   </Button>
                   <Button onClick={() => setUserModalOpen(true)}>
@@ -182,7 +223,8 @@ export default function UsersPage() {
                   label: "Invite member",
                   icon: EnvelopeSimple,
                   onClick: () => {
-                    setInviteToken(null);
+                    setInviteSent(null);
+                    setInviteCopied(false);
                     setInviteModalOpen(true);
                   },
                 },
@@ -333,25 +375,33 @@ export default function UsersPage() {
                   </Modal>
                   <Modal
                     open={inviteModalOpen}
-                    title="Invite member"
-                    description="Send an email invitation to join the organization."
-                    onClose={() => { setInviteModalOpen(false); setInviteToken(null); }}
-                    isDirty={formDirty && !inviteToken}
+                    title={inviteSent ? "Invitation ready" : "Invite member"}
+                    description={
+                      inviteSent
+                        ? "Share the invitation link if the email does not arrive."
+                        : "Send an email invitation to join the organization."
+                    }
+                    onClose={() => {
+                      setInviteModalOpen(false);
+                      setInviteSent(null);
+                      setInviteCopied(false);
+                    }}
+                    isDirty={formDirty && !inviteSent}
                   >
-                    {inviteToken ? (
-                      <div className="flex flex-col gap-3">
-                        <p role="status" className="rounded-lg bg-slate-50 p-3 text-[13px] text-slate-700 break-all dark:bg-neutral-800/60 dark:text-neutral-300">
-                          Share this one-time link:{" "}
-                          <span className="font-mono">
-                            /invite/accept?token={inviteToken}
-                          </span>
-                        </p>
-                        <div>
-                          <Button onClick={() => { setInviteModalOpen(false); setInviteToken(null); }}>
-                            Done
-                          </Button>
-                        </div>
-                      </div>
+                    {inviteSent ? (
+                      <InviteSentPanel
+                        email={inviteSent.email}
+                        link={inviteSent.link}
+                        emailSent={inviteSent.emailSent}
+                        copied={inviteCopied}
+                        error={inviteError ?? undefined}
+                        onCopy={onCopyInviteLink}
+                        onDone={() => {
+                          setInviteModalOpen(false);
+                          setInviteSent(null);
+                          setInviteCopied(false);
+                        }}
+                      />
                     ) : (
                       <InviteForm
                         key={inviteModalOpen ? "invite-new" : "invite-closed"}
@@ -359,6 +409,7 @@ export default function UsersPage() {
                         submitting={inviteSubmitting}
                         onCancel={() => setInviteModalOpen(false)}
                         onDirtyChange={setFormDirty}
+                        serverError={inviteError ?? undefined}
                       />
                     )}
                   </Modal>
@@ -407,5 +458,58 @@ function PendingInvitesCard({
         )}
       </ul>
     </Card>
+  );
+}
+
+function InviteSentPanel({
+  email,
+  link,
+  emailSent,
+  copied,
+  error,
+  onCopy,
+  onDone,
+}: {
+  email: string;
+  link: string;
+  emailSent: boolean;
+  copied: boolean;
+  error?: string;
+  onCopy: (link: string) => Promise<void>;
+  onDone: () => void;
+}) {
+  return (
+    <div className="flex flex-col gap-3">
+      {emailSent ? (
+        <Alert tone="success">
+          Invitation sent to <span className="font-semibold">{email}</span>. They&apos;ll receive a
+          one-time link to join the organization.
+        </Alert>
+      ) : (
+        <Alert tone="warning">
+          The invitation was created, but the email could not be delivered. Copy the link below and
+          share it directly with <span className="font-semibold">{email}</span>.
+        </Alert>
+      )}
+      {error ? <Alert tone="error">{error}</Alert> : null}
+      <div className="flex flex-col gap-2">
+        <p className="text-[13px] font-semibold text-ink dark:text-neutral-200">Invitation link</p>
+        <p className="break-all rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 font-mono text-[12px] text-slate-600 dark:border-neutral-800 dark:bg-neutral-800/60 dark:text-neutral-300">
+          {link}
+        </p>
+        <div className="flex flex-wrap gap-2">
+          <Button variant="ghost" onClick={() => void onCopy(link)} disabled={copied}>
+            <Copy size={16} aria-hidden="true" />
+            {copied ? "Copied" : "Copy invite link"}
+          </Button>
+          <Button onClick={onDone}>Done</Button>
+        </div>
+        {copied ? (
+          <p role="status" className="text-[13px] font-medium text-emerald-700 dark:text-emerald-400">
+            Invitation link copied successfully.
+          </p>
+        ) : null}
+      </div>
+    </div>
   );
 }
