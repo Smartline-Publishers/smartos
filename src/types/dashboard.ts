@@ -39,6 +39,17 @@ export interface DashboardSummary {
   publishedBooks: number;
   totalContributors: number;
   pendingRoyalties: number;
+  teamMembers?: number;
+  pendingInvites?: number;
+  totalCustomers?: number;
+  activeOrders?: number;
+  revenueThisQuarter?: number;
+  budgetThisQuarter?: number;
+  activeProductionJobs?: number;
+  inventoryTitles?: number;
+  stockOnHand?: number;
+  lowStockItems?: number;
+  warehouses?: number;
   manuscriptPipeline?: PipelineSlice[];
   titlePipeline?: PipelineSlice[];
   attention?: AttentionItem[];

@@ -303,7 +303,7 @@ function getStatCards(role: string | null, permissions: Permission[], summary: D
       if (hasPermission(permissions, "users.read")) {
         cards.push({
           label: "Team members",
-          value: String(summary.totalContributors), // Using contributors as proxy for team
+          value: String(summary.teamMembers ?? 0), // live team member count
           sub: "Users in organisation",
           href: "/users",
           linkLabel: "Manage users",
@@ -331,7 +331,7 @@ function getStatCards(role: string | null, permissions: Permission[], summary: D
       if (hasPermission(permissions, "orders.read")) {
         cards.push({
           label: "Active orders",
-          value: String(summary.totalBooks), // Using books as proxy
+          value: String(summary.activeOrders ?? 0),
           sub: "Orders this quarter",
           href: "/orders",
           linkLabel: "View orders",
@@ -342,7 +342,7 @@ function getStatCards(role: string | null, permissions: Permission[], summary: D
       if (hasPermission(permissions, "customers.read")) {
         cards.push({
           label: "Customers",
-          value: String(summary.totalContributors), // Using contributors as proxy
+          value: String(summary.totalCustomers ?? 0),
           sub: "Active customers",
           href: "/customers",
           linkLabel: "View customers",
@@ -353,7 +353,7 @@ function getStatCards(role: string | null, permissions: Permission[], summary: D
       if (canViewFinance) {
         cards.push({
           label: "Revenue this quarter",
-          value: formatGHS(summary.pendingRoyalties), // Using royalties as proxy
+          value: formatGHS(summary.revenueThisQuarter ?? 0),
           sub: "Total revenue",
           href: "/finance",
           linkLabel: "View finance",
@@ -379,7 +379,7 @@ function getStatCards(role: string | null, permissions: Permission[], summary: D
         });
         cards.push({
           label: "Budget overview",
-          value: formatGHS(summary.pendingRoyalties * 2), // Proxy
+          value: formatGHS(summary.budgetThisQuarter ?? 0),
           sub: "Quarterly budget",
           href: "/finance",
           linkLabel: "View budgets",
@@ -408,7 +408,7 @@ function getStatCards(role: string | null, permissions: Permission[], summary: D
       if (hasPermission(permissions, "inventory.read")) {
         cards.push({
           label: "Inventory items",
-          value: String(summary.totalBooks), // Proxy
+          value: String(summary.inventoryTitles ?? 0),
           sub: "Tracked in inventory",
           href: "/inventory",
           linkLabel: "View inventory",
