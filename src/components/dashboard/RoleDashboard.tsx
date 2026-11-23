@@ -6,6 +6,7 @@ import { Book, BookOpen, Coins, Plus, Users, X, ShieldCheck, FileText, Gear, Pri
 import { Card } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Spinner } from "@/components/ui/Spinner";
+import { Skeleton, SkeletonCard } from "@/components/ui/Skeleton";
 import { Badge } from "@/components/ui/Badge";
 import { Sparkline } from "@/components/charts/Sparkline";
 import { Donut, type DonutSegment } from "@/components/charts/Donut";
@@ -73,7 +74,23 @@ export function RoleBasedDashboard({
     return <EmptyState title="Could not load summary" description={loadError} />;
   }
   if (!summary) {
-    return <Spinner label="Loading summary…" />;
+    return (
+      <div className="flex flex-col gap-4" aria-live="polite" aria-busy="true">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="min-w-0 flex-1">
+            <Skeleton width="10rem" height="0.875rem" rounded="sm" className="mb-2" />
+            <Skeleton width="16rem" height="1.75rem" rounded="lg" className="mb-2" />
+            <Skeleton width="24rem" height="0.875rem" rounded="sm" />
+          </div>
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <SkeletonCard />
+          <SkeletonCard />
+          <SkeletonCard />
+          <SkeletonCard />
+        </div>
+      </div>
+    );
   }
 
   return (

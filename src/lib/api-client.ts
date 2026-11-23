@@ -5,6 +5,14 @@ import {
   setTokens,
 } from "@/lib/auth";
 
+// Clerk token bridge: a client component (ClerkTokenSync) registers a getter
+// that returns the current Clerk session token. When present, the API client
+// uses it instead of the legacy localStorage tokens.
+let clerkTokenGetter: (() => Promise<string | null>) | null = null;
+export function setClerkTokenGetter(getter: (() => Promise<string | null>) | null): void {
+  clerkTokenGetter = getter;
+}
+
 export class ApiError extends Error {
   status: number;
   fields?: Record<string, string[]>;
@@ -155,16 +163,19 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
     return fetch(`${baseUrl()}${path}`, { ...init, headers });
   };
 
-  let res = await doFetch(isPublicAuth ? null : getAccessToken());
-  if (res.status === 401 && !isPublicAuth) {
-    // Attempt exactly one (shared) silent refresh, then retry once.
+  const usingClerk = clerkTokenGetter !== null;
+  const initialToken = isPublicAuth
+    ? null
+    : usingClerk
+      ? await clerkTokenGetter!().catch(() => null)
+      : getAccessToken();
+  let res = await doFetch(initialToken);
+  if (res.status === 401 && !isPublicAuth && !usingClerk) {
+    // Legacy path: attempt exactly one (shared) silent refresh, then retry once.
     const next = await sharedRefresh();
     if (next) {
       res = await doFetch(next);
       if (res.status === 401) {
-        // A fresh token was still rejected: credentials are invalid, not
-        // merely expired. Drop them so callers observe a clean logged-out
-        // state instead of retrying with a dead token.
         clearTokens();
       }
     } else {

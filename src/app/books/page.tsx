@@ -10,6 +10,7 @@ import { Select } from "@/components/ui/Select";
 import { Pagination } from "@/components/ui/Pagination";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Spinner } from "@/components/ui/Spinner";
+import { PageSkeleton } from "@/components/ui/Skeleton";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
@@ -31,7 +32,7 @@ export default function BooksPage() {
             title="Books"
             description="Every title in the catalog, by publication status."
           />
-          <Suspense fallback={<Spinner label="Loading books…" />}>
+          <Suspense fallback={<PageSkeleton />}>
             <BooksContent />
           </Suspense>
         </div>
@@ -202,3 +203,4 @@ function useDebouncedValue<T>(value: T | undefined, delayMs: number): T | undefi
   }, [value, delayMs]);
   return debounced;
 }
+

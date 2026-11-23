@@ -10,9 +10,10 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@clerk/nextjs": "^7.10.0",
     "@hookform/resolvers": "3.6.0",
     "@phosphor-icons/react": "^2.1.10",
-    "next": "14.2.5",
+    "next": "^15.5.29",
     "react": "18.3.1",
     "react-dom": "18.3.1",
     "react-hook-form": "7.52.1",
@@ -35,6 +36,8 @@
     "vitest": "2.0.5"
   },
   "allowScripts": {
-    "unrs-resolver@1.12.2": true
+    "unrs-resolver@1.12.2": true,
+    "@clerk/shared@3.48.1": true,
+    "esbuild@0.21.5": true
   }
 }

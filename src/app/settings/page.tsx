@@ -7,6 +7,7 @@ import { ProtectedRoute } from "@/components/layout/ProtectedRoute";
 import { AppShell } from "@/components/layout/AppShell";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Spinner } from "@/components/ui/Spinner";
+import { PageSkeleton } from "@/components/ui/Skeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { useAuth } from "@/hooks/use-auth";
 import { useOrg } from "@/hooks/use-org";
@@ -14,19 +15,17 @@ import { hasPermission } from "@/lib/permissions";
 import { cn } from "@/lib/cn";
 import { OrganizationSettings } from "@/features/settings/OrganizationSettings";
 import { ThemeCustomizer } from "@/features/settings/ThemeCustomizer";
-import { ProfileSettings } from "@/features/settings/ProfileSettings";
 import { AppearanceSettings } from "@/features/settings/AppearanceSettings";
-import { SecuritySettings } from "@/features/settings/SecuritySettings";
 import { Card } from "@/components/ui/Card";
+import { UserProfile } from "@clerk/nextjs";
 
-const SECTIONS = ["organization", "profile", "appearance", "security"] as const;
+const SECTIONS = ["organization", "account", "appearance"] as const;
 type Section = (typeof SECTIONS)[number];
 
 const SECTION_LABELS: Record<Section, string> = {
   organization: "Organization",
-  profile: "Profile",
+  account: "Account",
   appearance: "Appearance",
-  security: "Security",
 };
 
 export default function SettingsPage() {
@@ -38,7 +37,7 @@ export default function SettingsPage() {
             title="Settings"
             description="Organization, profile, appearance, and security."
           />
-          <Suspense fallback={<Spinner label="Loading settings…" />}>
+          <Suspense fallback={<PageSkeleton />}>
             <SettingsContent />
           </Suspense>
         </div>
@@ -50,25 +49,24 @@ export default function SettingsPage() {
 function SettingsContent() {
   const searchParams = useSearchParams();
   const { permissions } = useAuth();
-  const { org, profile, loading, refresh } = useOrg();
+  const { org, loading, refresh } = useOrg();
   // Organization settings are only for roles that may administer them.
   const admin = hasPermission(permissions, "org.settings.write");
   const requested = searchParams.get("section");
   const section: Section =
     requested === "organization" ||
-    requested === "profile" ||
-    requested === "appearance" ||
-    requested === "security"
+    requested === "account" ||
+    requested === "appearance"
       ? requested
       : admin
         ? "organization"
-        : "profile";
+        : "account";
   const visible: Section[] = admin
-    ? ["organization", "profile", "appearance", "security"]
-    : ["profile", "appearance", "security"];
+    ? ["organization", "account", "appearance"]
+    : ["account", "appearance"];
 
-  if (loading && !org && !profile) {
-    return <Spinner label="Loading settings…" />;
+  if (loading && !org && admin) {
+    return <PageSkeleton />;
   }
 
   return (
@@ -114,17 +112,16 @@ function SettingsContent() {
         )
       ) : null}
 
-      {section === "profile" ? (
-        profile ? (
-          <ProfileSettings profile={profile} onSaved={refresh} />
-        ) : (
-          <Spinner label="Loading profile…" />
-        )
+      {section === "account" ? (
+        <Suspense fallback={<PageSkeleton />}>
+          <div className="overflow-hidden rounded-2xl border border-line bg-white shadow-[0_1px_2px_rgb(15_23_42/0.04)] dark:border-neutral-800 dark:bg-neutral-900 dark:shadow-none">
+            <UserProfile routing="hash" />
+          </div>
+        </Suspense>
       ) : null}
 
       {section === "appearance" ? <AppearanceSettings isAdmin={admin} /> : null}
-
-      {section === "security" ? <SecuritySettings onChanged={refresh} /> : null}
     </div>
   );
 }
+

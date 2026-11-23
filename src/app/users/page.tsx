@@ -16,6 +16,7 @@ import { Pagination } from "@/components/ui/Pagination";
 import { Card } from "@/components/ui/Card";
 import { Alert } from "@/components/ui/Alert";
 import { useAuth } from "@/hooks/use-auth";
+import { useClerk } from "@clerk/nextjs";
 import { ApiError } from "@/lib/api-client";
 import { copyText } from "@/lib/clipboard";
 import { hasPermission } from "@/lib/permissions";
@@ -35,15 +36,14 @@ import {
   type OrgUser,
   type UpdateUserInput,
 } from "@/features/users/api";
-import { UserForm } from "@/features/users/UserForm";
 import { UserEditForm } from "@/features/users/UserEditForm";
-import { InviteForm } from "@/features/invites/InviteForm";
 import { getCurrentOrg, type CurrentOrganization } from "@/features/organization/api";
 import type { Page } from "@/types/api";
 import { usePagedQuery } from "@/hooks/use-paged-query";
 
 export default function UsersPage() {
   const { user, session, permissions } = useAuth();
+  const { openOrganizationProfile } = useClerk();
   const canManage = hasPermission(permissions, "users.read");
   const canEdit = hasPermission(permissions, "users.write");
   const query = usePagedQuery({ pageSize: 20 });
@@ -196,14 +196,10 @@ export default function UsersPage() {
             actions={
               canEdit ? (
                 <>
-                  <Button variant="ghost" onClick={() => {
-                    setInviteSent(null);
-                    setInviteCopied(false);
-                    setInviteModalOpen(true);
-                  }}>
+                  <Button variant="ghost" onClick={() => openOrganizationProfile()}>
                     Invite member
                   </Button>
-                  <Button onClick={() => setUserModalOpen(true)}>
+                  <Button onClick={() => openOrganizationProfile()}>
                     Add user
                   </Button>
                 </>
@@ -217,16 +213,12 @@ export default function UsersPage() {
                 {
                   label: "Add user",
                   icon: UserPlus,
-                  onClick: () => setUserModalOpen(true),
+                  onClick: () => openOrganizationProfile(),
                 },
                 {
                   label: "Invite member",
                   icon: EnvelopeSimple,
-                  onClick: () => {
-                    setInviteSent(null);
-                    setInviteCopied(false);
-                    setInviteModalOpen(true);
-                  },
+                  onClick: () => openOrganizationProfile(),
                 },
               ]}
             />
@@ -339,22 +331,6 @@ export default function UsersPage() {
                     />
                   </div>
                   <Modal
-                    open={userModalOpen}
-                    title="Add user"
-                    description="Create a staff account directly."
-                    onClose={() => setUserModalOpen(false)}
-                    isDirty={formDirty}
-                  >
-                    <UserForm
-                      key={userModalOpen ? "user-new" : "user-closed"}
-                      assignableRoles={session?.assignableRoles}
-                      onSubmit={onCreateUser}
-                      submitting={userSubmitting}
-                      onCancel={() => setUserModalOpen(false)}
-                      onDirtyChange={setFormDirty}
-                    />
-                  </Modal>
-                  <Modal
                     open={editing !== null}
                     title="Edit user"
                     description="Update this person's details or change the role they hold."
@@ -373,46 +349,7 @@ export default function UsersPage() {
                       />
                     ) : null}
                   </Modal>
-                  <Modal
-                    open={inviteModalOpen}
-                    title={inviteSent ? "Invitation ready" : "Invite member"}
-                    description={
-                      inviteSent
-                        ? "Share the invitation link if the email does not arrive."
-                        : "Send an email invitation to join the organization."
-                    }
-                    onClose={() => {
-                      setInviteModalOpen(false);
-                      setInviteSent(null);
-                      setInviteCopied(false);
-                    }}
-                    isDirty={formDirty && !inviteSent}
-                  >
-                    {inviteSent ? (
-                      <InviteSentPanel
-                        email={inviteSent.email}
-                        link={inviteSent.link}
-                        emailSent={inviteSent.emailSent}
-                        copied={inviteCopied}
-                        error={inviteError ?? undefined}
-                        onCopy={onCopyInviteLink}
-                        onDone={() => {
-                          setInviteModalOpen(false);
-                          setInviteSent(null);
-                          setInviteCopied(false);
-                        }}
-                      />
-                    ) : (
-                      <InviteForm
-                        key={inviteModalOpen ? "invite-new" : "invite-closed"}
-                        onSubmit={onInvite}
-                        submitting={inviteSubmitting}
-                        onCancel={() => setInviteModalOpen(false)}
-                        onDirtyChange={setFormDirty}
-                        serverError={inviteError ?? undefined}
-                      />
-                    )}
-                  </Modal>
+                  {/* Member invitations are now handled by Clerk's OrganizationProfile modal. */}
                 </>
               )}
             </>

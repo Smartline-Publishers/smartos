@@ -1,186 +1,143 @@
 "use client";
 
 import {
-  createContext,
   useCallback,
-  useContext,
   useEffect,
   useMemo,
   useState,
   type ReactNode,
 } from "react";
 import { useRouter } from "next/navigation";
-import {
-  login as loginRequest,
-  loginWithPasskey as loginWithPasskeyRequest,
-  verifyTwoFactor,
-  getSessionInfo,
-} from "@/features/auth/api";
+import { useClerk, useUser } from "@clerk/nextjs";
+import { getSessionInfo } from "@/features/auth/api";
+import type { AuthTokens, Permission, Role, SessionInfo, User } from "@/types/auth";
 import type { LoginResult } from "@/features/auth/api";
-import {
-  clearTokens,
-  getAccessToken,
-  getStoredEmail,
-  parseJwt,
-  setStoredEmail,
-} from "@/lib/auth";
-import type { Permission, Role, SessionInfo, User } from "@/types/auth";
-
-interface AuthContextValue {
-  user: User | null;
-  /** Live role/permission context from the server; null until it loads. */
-  session: SessionInfo | null;
-  /** Effective permissions of the caller. */
-  permissions: Permission[];
-  loading: boolean;
-  login: (email: string, password: string) => Promise<LoginResult>;
-  loginWithPasskey: (email?: string) => Promise<LoginResult>;
-  loginWithTwoFactor: (challengeToken: string, code: string, fallbackEmail: string) => Promise<void>;
-  /** Clears tokens and returns to the sign-in page. */
-  logout: (redirectTo?: string) => void;
-  /** Re-read the stored token (e.g. after register/invite-accept set tokens directly). */
-  refreshSession: (fallbackEmail?: string) => void;
-  /** Reload the live session (role/permissions) from the server. */
-  reloadSession: () => Promise<void>;
-}
-
-const AuthContext = createContext<AuthContextValue | null>(null);
-
-function userFromToken(token: string | null, fallbackEmail?: string | null): User | null {
-  if (!token) return null;
-  const claims = parseJwt(token);
-  if (!claims) return null;
-  // Backend JWT has no `email` claim — prefer the token value, then the
-  // explicit fallback (login form), then the persisted email from a prior login.
-  const email = claims.email || fallbackEmail || getStoredEmail() || "";
-  return {
-    id: claims.sub,
-    email,
-    orgId: claims.orgId,
-    roles: claims.roles,
-  };
-}
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [session, setSession] = useState<SessionInfo | null>(null);
-  const [loading, setLoading] = useState(true);
+  return <>{children}</>;
+}
+
+export function useAuth() {
+  const { user: clerkUser, isLoaded } = useUser();
+  const { signOut } = useClerk();
   const router = useRouter();
 
-  // The server is the authority on the caller's role and permissions. They are
-  // loaded on mount (and after a role change) so the UI reflects them
-  // immediately rather than whatever the access token happened to carry.
-  const reloadSession = useCallback(async () => {
-    if (!getAccessToken()) {
+  const [session, setSession] = useState<SessionInfo | null>(() => {
+    // Restore the last known backend session optimistically so a refresh does
+    // not flash the wrong screen while /auth/me is revalidated.
+    if (typeof window === "undefined") return null;
+    try {
+      const raw = window.sessionStorage.getItem("smartos.session");
+      return raw ? (JSON.parse(raw) as SessionInfo) : null;
+    } catch {
+      return null;
+    }
+  });
+  const [sessionLoading, setSessionLoading] = useState(false);
+
+  const user: User | null = useMemo(() => {
+    if (!isLoaded || !clerkUser) return null;
+    const meta = (clerkUser.publicMetadata ?? {}) as Record<string, unknown>;
+    return {
+      id: clerkUser.id,
+      email: clerkUser.primaryEmailAddress?.emailAddress ?? "",
+      orgId: typeof meta.orgId === "string" ? meta.orgId : "",
+      roles: Array.isArray(meta.roles) ? (meta.roles as Role[]) : [],
+    };
+  }, [isLoaded, clerkUser]);
+
+  // Load the live role/permission context from the backend once Clerk signs in.
+  useEffect(() => {
+    if (!isLoaded) return;
+    if (!clerkUser) {
       setSession(null);
       return;
     }
+    let alive = true;
+    setSessionLoading(true);
+    getSessionInfo()
+      .then((s) => {
+        if (alive) setSession(s);
+      })
+      .catch(() => {
+        if (alive) setSession(null);
+      })
+      .finally(() => {
+        if (alive) setSessionLoading(false);
+      });
+    return () => {
+      alive = false;
+    };
+  }, [isLoaded, clerkUser?.id]);
+
+  const loading = !isLoaded || (clerkUser !== null && sessionLoading && session === null);
+
+  const permissions: Permission[] = useMemo(
+    () => session?.permissions ?? [],
+    [session],
+  );
+
+  // Persist the backend session so a refresh restores it without a flash.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      if (session) window.sessionStorage.setItem("smartos.session", JSON.stringify(session));
+      else window.sessionStorage.removeItem("smartos.session");
+    } catch {
+      // ignore
+    }
+  }, [session]);
+
+  const logout = useCallback(
+    (redirectTo: string = "/sign-in") => {
+      if (typeof window !== "undefined") {
+        try { window.sessionStorage.removeItem("smartos.session"); } catch { /* ignore */ }
+      }
+      void signOut({ redirectUrl: redirectTo });
+    },
+    [signOut],
+  );
+
+  const reloadSession = useCallback(async () => {
+    if (!clerkUser) return;
     try {
       setSession(await getSessionInfo());
     } catch {
       setSession(null);
     }
-  }, []);
+  }, [clerkUser]);
 
-  useEffect(() => {
-    const current = userFromToken(getAccessToken(), getStoredEmail());
-    setUser(current);
-    setLoading(false);
-    if (current) void reloadSession();
-  }, [reloadSession]);
-
-const login = useCallback(async (email: string, password: string) => {
-    const result = await loginRequest(email, password);
-    if (result.kind === "challenge") return result;
-    setStoredEmail(email);
-    setUser(userFromToken(getAccessToken(), email));
-    await reloadSession();
-    return result;
-}, [reloadSession]);
-
-  const loginWithPasskey = useCallback(async (email?: string) => {
-    const result = await loginWithPasskeyRequest(email);
-    if (result.kind === "challenge") return result;
-    const token = getAccessToken();
-    const resolved = email || parseJwt(token ?? "")?.email || getStoredEmail() || "";
-    if (resolved) setStoredEmail(resolved);
-    setUser(userFromToken(token, resolved));
-    await reloadSession();
-    return result;
-  }, [reloadSession]);
-
-  const loginWithTwoFactor = useCallback(
-    async (challengeToken: string, code: string, fallbackEmail: string) => {
-      await verifyTwoFactor(challengeToken, code);
-      setStoredEmail(fallbackEmail);
-      setUser(userFromToken(getAccessToken(), fallbackEmail));
-      await reloadSession();
+  return {
+    user: session
+      ? { id: session.userId, email: session.email, orgId: session.organizationId, roles: session.roles as Role[] }
+      : user,
+    session,
+    permissions,
+    loading,
+    login: async (_email?: string, _password?: string): Promise<LoginResult> => {
+      router.push("/sign-in");
+      return { kind: "tokens", tokens: { accessToken: "", refreshToken: "" } as AuthTokens };
     },
-    [reloadSession],
-  );
-
-  const logout = useCallback((redirectTo: string = "/login") => {
-    clearTokens();
-    setUser(null);
-    setSession(null);
-    router.push(redirectTo);
-  }, [router]);
-
-  const refreshSession = useCallback(
-    (fallbackEmail?: string) => {
-      if (fallbackEmail) setStoredEmail(fallbackEmail);
-      setUser(userFromToken(getAccessToken(), fallbackEmail ?? getStoredEmail()));
+    loginWithPasskey: async (_email?: string): Promise<LoginResult> => {
+      router.push("/sign-in");
+      return { kind: "tokens", tokens: { accessToken: "", refreshToken: "" } as AuthTokens };
+    },
+    loginWithTwoFactor: async (_challengeToken?: string, _code?: string, _fallbackEmail?: string) => {},
+    logout,
+    refreshSession: (fallbackEmail?: string) => {
       void reloadSession();
     },
-    [reloadSession],
-  );
-
-  const permissions = useMemo<Permission[]>(
-    () => session?.permissions ?? [],
-    [session],
-  );
-
-  const value = useMemo(
-    () => ({
-      user,
-      session,
-      permissions,
-      loading,
-      login,
-      loginWithPasskey,
-      loginWithTwoFactor,
-      logout,
-      refreshSession,
-      reloadSession,
-    }),
-    [user, session, permissions, loading, login, loginWithPasskey, loginWithTwoFactor, logout,
-      refreshSession, reloadSession],
-  );
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+    reloadSession,
+  };
 }
 
-export function useAuth(): AuthContextValue {
-  const ctx = useContext(AuthContext);
-  if (!ctx) throw new Error("useAuth must be used within AuthProvider");
-  return ctx;
-}
-
-/**
- * The caller's primary role. Prefers the live role from the server and
- * falls back to the token claims while the session is still loading.
- * Returns the first role (typically the user's primary role in the org).
- */
 export function usePrimaryRole(): Role | null {
   const roles = useRoles();
   return roles[0] ?? null;
 }
 
-/**
- * The caller's effective roles. Prefers the live role from the server and
- * falls back to the token claims while the session is still loading.
- */
 export function useRoles(): Role[] {
   const { session, user } = useAuth();
-  if (session?.roles?.length) return session.roles;
+  if (session?.roles?.length) return session.roles as Role[];
   return user?.roles ?? [];
 }

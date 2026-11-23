@@ -1,11 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { ProtectedRoute } from "@/components/layout/ProtectedRoute";
 import { AppShell } from "@/components/layout/AppShell";
 import { useAuth } from "@/hooks/use-auth";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Spinner } from "@/components/ui/Spinner";
+import { Skeleton, SkeletonCard } from "@/components/ui/Skeleton";
 import { getSummary } from "@/features/dashboard/api";
 import { ApiError } from "@/lib/api-client";
 import type { DashboardSummary } from "@/types/dashboard";
@@ -15,9 +17,18 @@ export default function DashboardPage() {
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const { user, session, permissions, logout } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!session) return;
+    if (!session.organizationId) {
+      router.replace("/onboarding");
+    }
+  }, [session, router]);
 
   useEffect(() => {
     let alive = true;
+    if (!session?.organizationId) return;
     getSummary().then(
       (s) => {
         if (alive) setSummary(s);
@@ -34,7 +45,7 @@ export default function DashboardPage() {
     return () => {
       alive = false;
     };
-  }, [logout]);
+  }, [session, logout]);
 
   return (
     <ProtectedRoute>

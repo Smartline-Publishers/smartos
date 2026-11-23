@@ -6,6 +6,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useOrg } from "@/hooks/use-org";
 import { ThemeSelector } from "@/components/layout/ThemeSelector";
 import { labelForPath } from "@/components/layout/navigation";
+import { Show, SignInButton, SignUpButton, UserButton, OrganizationSwitcher } from "@clerk/nextjs";
 
 function shortOrg(orgId: string | undefined): string {
   if (!orgId) return "No organization";
@@ -68,6 +69,26 @@ export function TopBar() {
           ) : null}
           {org ? org.slug : shortOrg(user?.orgId)}
         </span>
+        <Show when="signed-out">
+          <SignInButton mode="modal">
+            <button className="h-9 rounded-lg border border-[#d8e0ec] bg-white px-3 text-sm font-medium text-ink hover:bg-neutral-50 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-100">
+              Sign in
+            </button>
+          </SignInButton>
+          <SignUpButton mode="modal">
+            <button className="h-9 rounded-lg bg-brand-600 px-3 text-sm font-medium text-white hover:bg-brand-700">
+              Sign up
+            </button>
+          </SignUpButton>
+        </Show>
+        <Show when="signed-in">
+          <OrganizationSwitcher
+            hidePersonal
+            afterSelectOrganizationUrl="/dashboard"
+            afterCreateOrganizationUrl="/dashboard"
+          />
+          <UserButton />
+        </Show>
         <ThemeSelector />
       </div>
     </div>

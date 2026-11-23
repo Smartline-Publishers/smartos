@@ -6,18 +6,20 @@ import { Spinner } from "@/components/ui/Spinner";
 import { useAuth } from "@/hooks/use-auth";
 
 export default function Home() {
-  const { user, loading } = useAuth();
+  const { user, session, loading } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
     if (!loading) {
-      if (user) {
-        router.push("/dashboard");
+      if (!user) {
+        router.push("/sign-in");
+      } else if (!session?.organizationId) {
+        router.push("/onboarding");
       } else {
-        router.push("/login");
+        router.push("/dashboard");
       }
     }
-  }, [loading, user, router]);
+  }, [loading, user, session, router]);
 
   if (loading) {
     return (

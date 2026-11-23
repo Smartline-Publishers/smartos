@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { Alert } from "@/components/ui/Alert";
 import { Spinner } from "@/components/ui/Spinner";
+import { PageSkeleton } from "@/components/ui/Skeleton";
 import { useAuth } from "@/hooks/use-auth";
 import { ApiError } from "@/lib/api-client";
 import { AcceptInviteSchema, acceptInvite, type AcceptInviteInput } from "@/features/invites/api";
@@ -19,7 +20,7 @@ import { useLegalDocuments } from "@/features/legal/useLegalDocuments";
 
 export default function InviteAcceptPage() {
   return (
-    <Suspense fallback={<Spinner label="Loading invitation…" />}>
+    <Suspense fallback={<PageSkeleton />}>
       <InviteAcceptContent />
     </Suspense>
   );
@@ -140,3 +141,4 @@ function InviteAcceptContent() {
     </main>
   );
 }
+

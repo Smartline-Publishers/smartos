@@ -106,6 +106,14 @@ vi.mock("@/components/layout/ThemeSelector", () => ({
   ThemeSelector: () => null,
 }));
 
+vi.mock("@clerk/nextjs", () => ({
+  Show: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  SignInButton: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  SignUpButton: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  UserButton: () => null,
+  OrganizationSwitcher: () => null,
+}));
+
 describe("app shell layout", () => {
   it("places the sidebar beside the scrolling main region on desktop", () => {
     const { container } = render(

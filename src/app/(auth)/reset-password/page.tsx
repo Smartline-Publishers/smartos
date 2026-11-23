@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { Alert } from "@/components/ui/Alert";
 import { Spinner } from "@/components/ui/Spinner";
+import { PageSkeleton } from "@/components/ui/Skeleton";
 import { resetPassword, validateResetToken } from "@/features/auth/api";
 import { ApiError } from "@/lib/api-client";
 import { checkPassword, PASSWORD_MIN_LENGTH } from "@/lib/password";
@@ -18,7 +19,7 @@ type State = "checking" | "ready" | "invalid" | "done";
 
 export default function ResetPasswordPage() {
   return (
-    <Suspense fallback={<Spinner label="Checking reset link…" />}>
+    <Suspense fallback={<PageSkeleton />}>
       <ResetPasswordContent />
     </Suspense>
   );
@@ -164,4 +165,5 @@ function ResetPasswordContent() {
     </main>
   );
 }
+
 

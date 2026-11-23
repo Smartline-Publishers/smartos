@@ -1,7 +1,8 @@
+import { ClerkProvider } from "@clerk/nextjs";
 import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
-import { AuthProvider } from "@/hooks/use-auth";
 import { OrgProvider } from "@/hooks/use-org";
+import { ClerkTokenSync } from "@/components/ClerkTokenSync";
 import { ThemeProvider } from "@/hooks/use-theme";
 import "./globals.css";
 
@@ -41,32 +42,33 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en">
       <body className={`${inter.className} min-h-screen bg-paper text-ink antialiased dark:bg-neutral-950 dark:text-neutral-200`}>
-        <a
+        <ClerkProvider>
+          <ClerkTokenSync />
+          <a
           href="#main-content"
           className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-white focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-brand-700 focus:shadow-lg dark:focus:bg-neutral-900 dark:focus:text-brand-200"
-        >
+          >
           Skip to content
-        </a>
-        <ThemeProvider>
-          <AuthProvider>
-            <OrgProvider>{children}</OrgProvider>
-          </AuthProvider>
-        </ThemeProvider>
-        <script
+          </a>
+          <ThemeProvider>
+          <OrgProvider>{children}</OrgProvider>
+          </ThemeProvider>
+          <script
           dangerouslySetInnerHTML={{
-            __html: `
-              if ('serviceWorker' in navigator) {
-                window.addEventListener('load', () => {
-                  navigator.serviceWorker.register('/sw.js').then((registration) => {
-                    console.log('SW registered: ', registration);
-                  }).catch((registrationError) => {
-                    console.log('SW registration failed: ', registrationError);
-                  });
-                });
-              }
-            `,
+          __html: `
+          if ('serviceWorker' in navigator) {
+          window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js').then((registration) => {
+          console.log('SW registered: ', registration);
+          }).catch((registrationError) => {
+          console.log('SW registration failed: ', registrationError);
+          });
+          });
+          }
+          `,
           }}
-        />
+          />
+        </ClerkProvider>
       </body>
     </html>
   );

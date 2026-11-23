@@ -24,6 +24,19 @@ export async function getCurrentOrg(): Promise<CurrentOrganization> {
   return res.data;
 }
 
+export async function bootstrapOrg(name: string): Promise<CurrentOrganization> {
+  const slug = name
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+  const res = await api.post<ApiEnvelope<CurrentOrganization>>("/organizations/bootstrap", {
+    name,
+    slug: slug || "org",
+  });
+  return res.data;
+}
+
 export interface UpdateOrganizationInput {
   name?: string;
   slug?: string;
