@@ -6,3 +6,6 @@ out
 .env*.local
 coverage
 *.tsbuildinfo
+
+dev.log
+*.log
