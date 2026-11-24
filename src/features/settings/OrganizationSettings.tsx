@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { OrganizationSwitcher, useUser } from "@clerk/nextjs";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
@@ -26,6 +27,10 @@ export function OrganizationSettings({
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+
+  const { user: clerkUser } = useUser();
+  // Only useful when the account actually belongs to several organizations.
+  const canSwitchOrganization = (clerkUser?.organizationMemberships?.length ?? 0) > 1;
 
   const save = async () => {
     setSaving(true);
@@ -66,6 +71,19 @@ export function OrganizationSettings({
 
   return (
     <div className="flex flex-col gap-4">
+      {canSwitchOrganization ? (
+        <Card title="Switch organization">
+          <p className="mb-3 text-[13px] leading-relaxed text-muted dark:text-neutral-400">
+            You belong to more than one organization. Switching changes which organization&apos;s
+            data you see.
+          </p>
+          <OrganizationSwitcher
+            hidePersonal
+            afterSelectOrganizationUrl="/settings"
+            afterCreateOrganizationUrl="/settings"
+          />
+        </Card>
+      ) : null}
       <Card title="Organization details">
         <div className="grid gap-3 sm:grid-cols-2">
           <Input
