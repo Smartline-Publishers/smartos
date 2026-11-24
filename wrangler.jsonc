@@ -13,5 +13,10 @@
   },
   "images": {
     "binding": "IMAGES"
+  },
+  // Runtime secret required by clerkMiddleware(). Wrangler refuses to deploy
+  // without it, instead of deploying a Worker that 500s on every request.
+  "secrets": {
+    "required": ["CLERK_SECRET_KEY"]
   }
 }

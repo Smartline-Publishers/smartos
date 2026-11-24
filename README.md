@@ -16,9 +16,17 @@ npm run dev
 
 ## Env
 
-| Var | Description | Default |
-| --- | ----------- | ------- |
-| `NEXT_PUBLIC_API_URL` | Backend base URL (must include `/api/v1`) | `http://localhost:8080/api/v1` |
+| Var | Where | Description |
+| --- | ----- | ----------- |
+| `NEXT_PUBLIC_API_URL` | build + runtime | Backend base URL (must include `/api/v1`) |
+| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | build + runtime | Clerk publishable key (`pk_...`) |
+| `CLERK_SECRET_KEY` | **runtime only** | Clerk secret key (`sk_...`). `clerkMiddleware()` throws if missing. |
+
+> Cloudflare **build variables** are not visible to the Worker at runtime.
+> `CLERK_SECRET_KEY` must also be added under the Worker's
+> **Settings → Variables and Secrets** (as a Secret) and deployed. `wrangler.jsonc`
+> declares it under `secrets.required`, so `wrangler deploy` fails with a clear
+> message when it is missing.
 
 ## Structure
 
