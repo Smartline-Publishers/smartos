@@ -1,5 +1,5 @@
 {
-  "name": "smartos-web",
+  "name": "smartos",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -7,7 +7,10 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "test": "vitest run"
+    "test": "vitest run",
+    "cf:build": "opennextjs-cloudflare build",
+    "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
+    "deploy": "opennextjs-cloudflare build && node scripts/strip-self-ref.cjs && opennextjs-cloudflare deploy"
   },
   "dependencies": {
     "@clerk/nextjs": "^7.10.0",
@@ -22,6 +25,7 @@
     "zod": "3.23.8"
   },
   "devDependencies": {
+    "@opennextjs/cloudflare": "^1.20.18",
     "@testing-library/react": "16.0.0",
     "@types/node": "20.14.10",
     "@types/react": "18.3.3",
@@ -33,7 +37,8 @@
     "postcss": "8.4.39",
     "tailwindcss": "3.4.6",
     "typescript": "5.5.3",
-    "vitest": "2.0.5"
+    "vitest": "2.0.5",
+    "wrangler": "^4.167.0"
   },
   "allowScripts": {
     "unrs-resolver@1.12.2": true,
