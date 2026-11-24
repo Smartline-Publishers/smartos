@@ -14,6 +14,17 @@
   "images": {
     "binding": "IMAGES"
   },
+  // Public runtime config. These are safe to commit (they are already shipped
+  // in the browser bundle) and keep the Worker's runtime bindings deterministic;
+  // only CLERK_SECRET_KEY is stored as an encrypted Worker secret.
+  "vars": {
+    "NEXT_PUBLIC_API_URL": "https://smartos-backend.onrender.com/api/v1",
+    "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY": "pk_test_cmlnaHQtZ2liYm9uLTI0OTMuY2xlcmsuYWNjb3VudHMuZGV2JA",
+    "NEXT_PUBLIC_CLERK_SIGN_IN_URL": "/sign-in",
+    "NEXT_PUBLIC_CLERK_SIGN_UP_URL": "/sign-up",
+    "NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL": "/",
+    "NEXT_PUBLIC_CLERK_SIGN_UP_FALLBACK_REDIRECT_URL": "/"
+  },
   // Runtime secret required by clerkMiddleware(). Wrangler refuses to deploy
   // without it, instead of deploying a Worker that 500s on every request.
   "secrets": {
