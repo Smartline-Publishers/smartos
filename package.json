@@ -10,7 +10,7 @@
     "test": "vitest run",
     "cf:build": "opennextjs-cloudflare build",
     "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
-    "deploy": "opennextjs-cloudflare build && node scripts/strip-self-ref.cjs && opennextjs-cloudflare deploy"
+    "deploy": "opennextjs-cloudflare build && node scripts/strip-self-ref.cjs && node scripts/cf-deploy.cjs"
   },
   "dependencies": {
     "@clerk/nextjs": "^7.10.0",

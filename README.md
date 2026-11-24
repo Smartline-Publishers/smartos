@@ -22,11 +22,29 @@ npm run dev
 | `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | build + runtime | Clerk publishable key (`pk_...`) |
 | `CLERK_SECRET_KEY` | **runtime only** | Clerk secret key (`sk_...`). `clerkMiddleware()` throws if missing. |
 
-> Cloudflare **build variables** are not visible to the Worker at runtime.
-> `CLERK_SECRET_KEY` must also be added under the Worker's
-> **Settings → Variables and Secrets** (as a Secret) and deployed. `wrangler.jsonc`
-> declares it under `secrets.required`, so `wrangler deploy` fails with a clear
-> message when it is missing.
+> Cloudflare **build variables** are not visible to the Worker at runtime, so
+> `CLERK_SECRET_KEY` must reach the Worker as a deployed secret. `npm run deploy`
+> handles that automatically: `scripts/cf-deploy.cjs` reads the value from the
+> build environment and uploads it with `--secrets-file`. `wrangler.jsonc`
+> declares it under `secrets.required`, so a deploy fails with a clear message
+> instead of shipping a Worker that 500s on every request.
+
+## Deploy
+
+Cloudflare Workers Builds runs:
+
+```bash
+npm run build    # next build
+npm run deploy   # opennextjs-cloudflare build -> strip-self-ref -> cf-deploy
+```
+
+`CLERK_SECRET_KEY` must be present in the build environment (Workers Builds →
+Settings → Variables and Secrets). The public `NEXT_PUBLIC_*` values live in
+`wrangler.jsonc` `vars` so runtime bindings stay deterministic.
+
+`GET /api/health` reports whether the deployed Worker can actually see the Clerk
+keys (booleans only, never values). It bypasses Clerk middleware, so it stays
+reachable while auth is misconfigured.
 
 ## Structure
 
