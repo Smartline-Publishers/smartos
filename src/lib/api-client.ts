@@ -8,9 +8,39 @@ import {
 // Clerk token bridge: a client component (ClerkTokenSync) registers a getter
 // that returns the current Clerk session token. When present, the API client
 // uses it instead of the legacy localStorage tokens.
-let clerkTokenGetter: (() => Promise<string | null>) | null = null;
-export function setClerkTokenGetter(getter: (() => Promise<string | null>) | null): void {
+export type ClerkTokenGetter = (options?: { skipCache?: boolean }) => Promise<string | null>;
+let clerkTokenGetter: ClerkTokenGetter | null = null;
+export function setClerkTokenGetter(getter: ClerkTokenGetter | null): void {
   clerkTokenGetter = getter;
+}
+
+// Force the next Clerk token fetch to bypass the client cache. Used after an
+// organization switch, where the cached token still carries the previous org.
+let forceClerkTokenRefresh = false;
+export function invalidateClerkTokenCache(): void {
+  forceClerkTokenRefresh = true;
+}
+
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function getClerkToken(): Promise<string | null> {
+  if (!clerkTokenGetter) return null;
+  const skipCache = forceClerkTokenRefresh;
+  forceClerkTokenRefresh = false;
+  // Wait briefly for Clerk to be ready instead of sending an unauthenticated
+  // request that the backend (correctly) rejects with 401.
+  for (let attempt = 0; attempt < 10; attempt += 1) {
+    try {
+      const token = await clerkTokenGetter(skipCache ? { skipCache: true } : undefined);
+      if (token) return token;
+    } catch {
+      // ignore and retry
+    }
+    if (attempt < 9) await delay(200);
+  }
+  return null;
 }
 
 export class ApiError extends Error {
@@ -167,19 +197,29 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   const initialToken = isPublicAuth
     ? null
     : usingClerk
-      ? await clerkTokenGetter!().catch(() => null)
+      ? await getClerkToken()
       : getAccessToken();
   let res = await doFetch(initialToken);
-  if (res.status === 401 && !isPublicAuth && !usingClerk) {
-    // Legacy path: attempt exactly one (shared) silent refresh, then retry once.
-    const next = await sharedRefresh();
-    if (next) {
-      res = await doFetch(next);
-      if (res.status === 401) {
-        clearTokens();
+  if (res.status === 401 && !isPublicAuth) {
+    if (usingClerk) {
+      // The cached token may be stale (e.g. after an organization switch).
+      // Force a fresh token once and retry before treating this as a logout.
+      invalidateClerkTokenCache();
+      const fresh = await getClerkToken();
+      if (fresh && fresh !== initialToken) {
+        res = await doFetch(fresh);
       }
     } else {
-      await parseError(res);
+      // Legacy path: attempt exactly one (shared) silent refresh, then retry once.
+      const next = await sharedRefresh();
+      if (next) {
+        res = await doFetch(next);
+        if (res.status === 401) {
+          clearTokens();
+        }
+      } else {
+        await parseError(res);
+      }
     }
   }
   if (!res.ok) await parseError(res);

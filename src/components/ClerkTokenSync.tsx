@@ -7,7 +7,7 @@ import { setClerkTokenGetter } from "@/lib/api-client";
 export function ClerkTokenSync() {
   const { getToken, isSignedIn } = useAuth();
   useEffect(() => {
-    setClerkTokenGetter(isSignedIn ? () => getToken() : null);
+    setClerkTokenGetter(isSignedIn ? (opts) => getToken(opts) : null);
     return () => setClerkTokenGetter(null);
   }, [getToken, isSignedIn]);
   return null;

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ProtectedRoute } from "@/components/layout/ProtectedRoute";
 import { AppShell } from "@/components/layout/AppShell";
@@ -18,6 +18,7 @@ export default function DashboardPage() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const { user, session, permissions, logout } = useAuth();
   const router = useRouter();
+  const lastLoadedFor = useRef<string | null>(null);
 
   useEffect(() => {
     if (!session) return;
@@ -29,6 +30,14 @@ export default function DashboardPage() {
   useEffect(() => {
     let alive = true;
     if (!session?.organizationId) return;
+    const identity = `${session.userId}:${session.organizationId}`;
+    // Drop any summary fetched for a previous user/organization so a switch
+    // never paints the previous tenant's data while the new one loads.
+    if (lastLoadedFor.current !== identity) {
+      setSummary(null);
+      setLoadError(null);
+    }
+    lastLoadedFor.current = identity;
     getSummary().then(
       (s) => {
         if (alive) setSummary(s);
@@ -45,7 +54,7 @@ export default function DashboardPage() {
     return () => {
       alive = false;
     };
-  }, [session, logout]);
+  }, [session?.userId, session?.organizationId, logout]);
 
   return (
     <ProtectedRoute>

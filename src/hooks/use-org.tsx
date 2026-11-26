@@ -6,6 +6,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
@@ -62,48 +63,56 @@ function writeCachedTheme(orgId: string, theme: OrgTheme | null | undefined): vo
 
 export function OrgProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
+  const userId = user?.id ?? null;
+  const orgId = user?.orgId ?? null;
   const [org, setOrg] = useState<CurrentOrganization | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [onboarding, setOnboarding] = useState<OnboardingChecklist | null>(null);
   const [loading, setLoading] = useState(false);
+  const generation = useRef(0);
 
   // Instant paint: apply the last known theme for this org before the
   // network round-trips, so navigation never flashes the default theme.
   useEffect(() => {
-    if (!user) {
+    if (!userId) {
       setOrg(null);
       setProfile(null);
       setOnboarding(null);
       applyOrgTheme(null);
       return;
     }
-    applyOrgTheme(readCachedTheme(user.orgId));
-  }, [user?.orgId, user === null]); // eslint-disable-line react-hooks/exhaustive-deps
+    applyOrgTheme(readCachedTheme(orgId ?? ""));
+  }, [userId, orgId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const refresh = useCallback(async () => {
-    if (!user) return;
+    if (!userId) return;
+    const run = ++generation.current;
     setLoading(true);
     try {
       const [nextOrg, nextProfile] = await Promise.all([getCurrentOrg(), getProfile()]);
+      if (run !== generation.current) return; // stale response, ignore
       setOrg(nextOrg);
       setProfile(nextProfile);
       writeCachedTheme(nextOrg.id, nextOrg.theme);
       applyOrgTheme(nextOrg.theme);
       // Every user has their own independent onboarding checklist; fetch it for all roles.
       try {
-        setOnboarding(await getOnboarding());
+        const nextOnboarding = await getOnboarding();
+        if (run !== generation.current) return;
+        setOnboarding(nextOnboarding);
       } catch (e) {
+        if (run !== generation.current) return;
         if (!(e instanceof ApiError && (e.status === 401 || e.status === 403))) throw e;
         setOnboarding(null);
       }
     } finally {
-      setLoading(false);
+      if (run === generation.current) setLoading(false);
     }
-  }, [user]);
+  }, [userId, orgId]);
 
   useEffect(() => {
     let alive = true;
-    if (!user) return;
+    if (!userId) return;
     refresh().catch(() => {
       if (alive) {
         setOrg(null);
@@ -114,7 +123,7 @@ export function OrgProvider({ children }: { children: ReactNode }) {
     return () => {
       alive = false;
     };
-  }, [user, refresh]);
+  }, [userId, orgId, refresh]);
 
   const value = useMemo(
     () => ({ org, profile, onboarding, loading, refresh }),

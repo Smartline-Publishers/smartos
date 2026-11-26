@@ -7,6 +7,9 @@ import { usePathname } from "next/navigation";
 import { useAuth } from "@/hooks/use-auth";
 import { useOrg } from "@/hooks/use-org";
 import { cn } from "@/lib/cn";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { hasPermission } from "@/lib/permissions";
+import { permissionForPath } from "@/components/layout/navigation";
 import { Brand } from "@/components/layout/Brand";
 import { TopBar } from "@/components/layout/TopBar";
 import { MobileHeader } from "@/components/layout/MobileHeader";
@@ -295,6 +298,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   // Only sections the caller's role may open are rendered; a role never sees
   // a navigation entry for a destination the API would refuse to serve.
   const sections = visibleSections(permissions);
+  const requiredPermission = permissionForPath(pathname);
+  const accessDenied = !!requiredPermission && !hasPermission(permissions, requiredPermission);
 
   // Check if we should use simplified flat navigation (fewer than 5 accessible items)
   const useSimpleNav = shouldUseSimpleNavigation(permissions);
@@ -516,7 +521,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           className="shell-scroll min-h-0 flex-1 overflow-y-auto overscroll-none overflow-x-hidden"
         >
           <div className="mx-auto max-w-[1500px] px-4 pb-[calc(8rem+env(safe-area-inset-bottom))] pt-4 md:px-7 md:py-[26px] md:pb-[26px]">
-            {children}
+            {accessDenied ? (
+              <EmptyState
+                title="You don't have access to this page"
+                description="Your role doesn't include the permission needed to open this destination. Contact your organization admin if you think this is a mistake."
+              />
+            ) : (
+              children
+            )}
           </div>
         </main>
       </div>
