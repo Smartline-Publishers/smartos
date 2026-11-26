@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 export interface PagedQuery {
   page: number;
@@ -13,34 +13,92 @@ export interface PagedQuery {
   toParams: () => { page: number; pageSize: number; search?: string };
 }
 
+interface PersistedPagedQuery {
+  page: number;
+  pageSize: number;
+  search: string;
+}
+
+function storageKey(): string {
+  if (typeof window === "undefined") return "smartos.paged";
+  return `smartos.paged.${window.location.pathname}`;
+}
+
+function readPersisted(initial?: { page?: number; pageSize?: number; search?: string }): PersistedPagedQuery {
+  const fallback: PersistedPagedQuery = {
+    page: initial?.page ?? 1,
+    pageSize: initial?.pageSize ?? 10,
+    search: initial?.search ?? "",
+  };
+  if (typeof window === "undefined") return fallback;
+  try {
+    const raw = window.sessionStorage.getItem(storageKey());
+    if (!raw) return fallback;
+    const parsed = JSON.parse(raw) as Partial<PersistedPagedQuery>;
+    return {
+      page: typeof parsed.page === "number" && parsed.page > 0 ? parsed.page : fallback.page,
+      pageSize: typeof parsed.pageSize === "number" && parsed.pageSize > 0 ? parsed.pageSize : fallback.pageSize,
+      search: typeof parsed.search === "string" ? parsed.search : fallback.search,
+    };
+  } catch {
+    return fallback;
+  }
+}
+
 export function usePagedQuery(initial?: {
   page?: number;
   pageSize?: number;
   search?: string;
 }): PagedQuery {
-  const [page, setPage] = useState<number>(initial?.page ?? 1);
-  const [pageSize, setPageSize] = useState<number>(initial?.pageSize ?? 10);
-  const [search, setSearchState] = useState<string>(initial?.search ?? "");
+  const [state, setState] = useState<PersistedPagedQuery>(() => readPersisted(initial));
+
+  // Persist whenever the query state changes so a refresh restores it.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      window.sessionStorage.setItem(storageKey(), JSON.stringify(state));
+    } catch {
+      // Storage unavailable — in-memory state still works for the session.
+    }
+  }, [state]);
+
+  const setPage = useCallback((p: number) => {
+    setState((prev) => ({ ...prev, page: p > 0 ? p : 1 }));
+  }, []);
+
+  const setPageSize = useCallback((s: number) => {
+    setState((prev) => ({ ...prev, pageSize: s > 0 ? s : prev.pageSize, page: 1 }));
+  }, []);
 
   const setSearch = useCallback((s: string) => {
-    setSearchState(s);
-    setPage(1);
+    setState((prev) => ({ ...prev, search: s, page: 1 }));
   }, []);
 
   const reset = useCallback(() => {
-    setPage(1);
-    setPageSize(initial?.pageSize ?? 10);
-    setSearchState("");
+    setState({
+      page: 1,
+      pageSize: initial?.pageSize ?? 10,
+      search: "",
+    });
   }, [initial?.pageSize]);
 
   const toParams = useCallback(() => {
-    const trimmed = search.trim();
+    const trimmed = state.search.trim();
     return {
-      page,
-      pageSize,
+      page: state.page,
+      pageSize: state.pageSize,
       ...(trimmed.length > 0 ? { search: trimmed } : {}),
     };
-  }, [page, pageSize, search]);
+  }, [state]);
 
-  return { page, pageSize, search, setPage, setPageSize, setSearch, reset, toParams };
+  return {
+    page: state.page,
+    pageSize: state.pageSize,
+    search: state.search,
+    setPage,
+    setPageSize,
+    setSearch,
+    reset,
+    toParams,
+  };
 }

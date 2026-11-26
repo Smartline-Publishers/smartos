@@ -9,7 +9,7 @@ import {
   type ReactNode,
 } from "react";
 import { useRouter } from "next/navigation";
-import { useClerk, useOrganization, useUser } from "@clerk/nextjs";
+import { useClerk, useOrganization, useOrganizationList, useUser } from "@clerk/nextjs";
 import { getSessionInfo } from "@/features/auth/api";
 import { invalidateClerkTokenCache } from "@/lib/api-client";
 import type { AuthTokens, Permission, Role, SessionInfo, User } from "@/types/auth";
@@ -63,6 +63,9 @@ export function useAuth() {
   const { user: clerkUser, isLoaded } = useUser();
   const { signOut, setActive } = useClerk();
   const { organization: activeOrganization, isLoaded: orgLoaded } = useOrganization();
+  const { userMemberships, isLoaded: orgListLoaded } = useOrganizationList({
+    userMemberships: true,
+  });
   const router = useRouter();
 
   const [session, setSession] = useState<SessionInfo | null>(null);
@@ -173,7 +176,7 @@ export function useAuth() {
       return;
     }
     if (activationFor.current === clerkUser.id) return;
-    const memberships = clerkUser.organizationMemberships ?? [];
+    const memberships = userMemberships?.data ?? [];
     if (memberships.length === 0) return;
 
     const preferred =
@@ -186,7 +189,7 @@ export function useAuth() {
       .then(() => loadSession({ requireOrg: true }))
       .catch(() => undefined)
       .finally(() => setActivatingOrg(false));
-  }, [isLoaded, clerkUser, orgLoaded, activeOrganization, setActive, loadSession]);
+  }, [isLoaded, clerkUser, orgLoaded, activeOrganization, userMemberships, setActive, loadSession]);
 
   /**
    * When the active Clerk organization changes (e.g. via the switcher), the
@@ -201,10 +204,12 @@ export function useAuth() {
     void loadSession({ requireOrg: true });
   }, [isLoaded, clerkUser, orgLoaded, activeOrganization, effectiveSession, loadSession]);
 
+  const membershipsLoading =
+    !!clerkUser && !activeOrganization && (userMemberships?.isLoading ?? true);
   const loading =
     !isLoaded ||
     (clerkUser !== null &&
-      (!sessionResolved || !orgLoaded || activatingOrg));
+      (!sessionResolved || !orgLoaded || membershipsLoading || activatingOrg));
 
   const permissions: Permission[] = useMemo(
     () => effectiveSession?.permissions ?? [],

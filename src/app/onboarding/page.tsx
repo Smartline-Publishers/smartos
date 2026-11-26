@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useOrganizationList } from "@clerk/nextjs";
 import { useForm } from "react-hook-form";
@@ -43,10 +43,20 @@ export default function OnboardingPage() {
 function OnboardingContent() {
   const router = useRouter();
   const { refresh } = useOrg();
-  const { reloadSession } = useAuth();
+  const { session, loading, reloadSession } = useAuth();
   const { createOrganization, setActive, isLoaded } = useOrganizationList();
   const [serverError, setServerError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+
+  // Never show the create-organization screen to someone who already has one.
+  // Clerk memberships are the source of truth: if any exist, adopt the first
+  // one and move on instead of creating a duplicate.
+  useEffect(() => {
+    if (loading) return;
+    if (session?.organizationId) {
+      router.replace("/dashboard");
+    }
+  }, [loading, session?.organizationId, router]);
 
   const form = useForm<Input>({
     resolver: zodResolver(Schema),
